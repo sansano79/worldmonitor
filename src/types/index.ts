@@ -684,6 +684,8 @@ export interface PanelConfig {
 }
 
 export interface MapLayers {
+  /** Published SEIDOR offices, positioned approximately at their city centres. */
+  seidorOffices?: boolean;
   conflicts: boolean;
   bases: boolean;
   cables: boolean;

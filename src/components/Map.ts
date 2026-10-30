@@ -39,6 +39,7 @@ import {
 // off the eager @/config barrel and load only with this lazy renderer (#4404).
 import { STARTUP_HUBS, ACCELERATORS, TECH_HQS, CLOUD_REGIONS } from '@/config/tech-geo';
 import { AI_DATA_CENTERS } from '@/config/ai-datacenters';
+import { SEIDOR_OFFICES } from '@/config/seidor-offices';
 import { worldTopologyUrl, UNDERSEA_CABLES, NUCLEAR_FACILITIES, SANCTIONED_COUNTRIES, ECONOMIC_CENTERS, SPACEPORTS, CRITICAL_MINERALS } from '@/config/geo-map';
 import { mountWebcamPinButton } from '@/services/webcams/pinned-store';
 import type { WebcamEntry, WebcamCluster } from '@/generated/client/worldmonitor/webcam/v1/service_client';
@@ -586,6 +587,7 @@ export class MapComponent {
 
     // Variant-aware layer buttons
     const fullLayers: (keyof MapLayers)[] = [
+      'seidorOffices',
       'iranAttacks',                                      // Iran conflict
       'conflicts', 'hotspots', 'sanctions', 'protests',  // geopolitical
       'bases', 'nuclear', 'irradiators',                 // military/strategic
@@ -662,7 +664,9 @@ export class MapComponent {
     const MAX_SVG_LAYERS = 9;
     const enforceLayerLimit = () => {
       const allBtns = Array.from(toggles.querySelectorAll<HTMLButtonElement>('.layer-toggle'));
-      const activeBtns = allBtns.filter(b => b.classList.contains('active'));
+      // The 78 curated SEIDOR dots have a fixed, small cost. Keep the existing
+      // nine-layer cap for live feeds while allowing this directory on mobile.
+      const activeBtns = allBtns.filter(b => b.dataset.layer !== 'seidorOffices' && b.classList.contains('active'));
       if (activeBtns.length > MAX_SVG_LAYERS) {
         const excess = activeBtns.slice(MAX_SVG_LAYERS);
         for (const btn of excess) {
@@ -671,11 +675,11 @@ export class MapComponent {
           if (layer) this.toggleLayer(layer);
         }
       }
-      const activeCount = allBtns.filter(b => b.classList.contains('active')).length;
+      const activeCount = allBtns.filter(b => b.dataset.layer !== 'seidorOffices' && b.classList.contains('active')).length;
       allBtns.forEach(b => {
         if (!b.classList.contains('active')) {
-          b.disabled = activeCount >= MAX_SVG_LAYERS;
-          b.classList.toggle('limit-reached', activeCount >= MAX_SVG_LAYERS);
+          b.disabled = b.dataset.layer !== 'seidorOffices' && activeCount >= MAX_SVG_LAYERS;
+          b.classList.toggle('limit-reached', b.disabled);
         } else {
           b.disabled = false;
           b.classList.remove('limit-reached');
@@ -1994,6 +1998,7 @@ export class MapComponent {
     if (layers.startupHubs) add('startupHubs', STARTUP_HUBS);
     if (layers.cloudRegions) add('cloudRegions', CLOUD_REGIONS);
     if (layers.techHQs) add('techHQs', TECH_HQS);
+    if (layers.seidorOffices) add('seidorOffices', SEIDOR_OFFICES, { exempt: true });
     if (layers.accelerators) add('accelerators', ACCELERATORS);
     if (layers.techEvents) add('techEvents', this.techEvents);
     if (layers.displacement) add('displacement', this.crossBorderPoints);
@@ -3102,6 +3107,33 @@ export class MapComponent {
         });
 
         this.appendOverlay(div);
+      });
+    }
+
+    // Published SEIDOR offices. Coordinates are city centres, not building pins.
+    if (this.state.layers.seidorOffices) {
+      SEIDOR_OFFICES.forEach((office) => {
+        if (this.isOverlayMarkerCut(office)) return;
+        const pos = projection([office.lon, office.lat]);
+        if (!pos || !Number.isFinite(pos[0]) || !Number.isFinite(pos[1])) return;
+
+        const marker = document.createElement('button');
+        marker.type = 'button';
+        marker.className = 'seidor-office-marker';
+        marker.style.cssText = 'position:absolute;width:12px;height:12px;border:1px solid #fff;border-radius:50%;padding:0;background:#3085ff;box-shadow:0 0 7px #3085ff;transform:translate(-50%,-50%);z-index:50;cursor:pointer;pointer-events:auto';
+        marker.style.left = `${pos[0]}px`;
+        marker.style.top = `${pos[1]}px`;
+        marker.title = `SEIDOR ${office.name} · approximate city location`;
+        marker.setAttribute('aria-label', `SEIDOR ${office.name}`);
+        marker.addEventListener('click', (event) => {
+          event.stopPropagation();
+          const rect = this.container.getBoundingClientRect();
+          this.popup.show({
+            type: 'seidorOffice', data: office,
+            x: event.clientX - rect.left, y: event.clientY - rect.top,
+          });
+        });
+        this.appendOverlay(marker);
       });
     }
 

@@ -1,0 +1,14 @@
+{
+  "name": "corporate-security-monitor-api",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "24" },
+  "scripts": {
+    "start": "node server.mjs",
+    "migrate": "node migrate.mjs"
+  },
+  "dependencies": {
+    "jose": "6.2.2",
+    "pg": "8.21.0"
+  }
+}

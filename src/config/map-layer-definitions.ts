@@ -57,6 +57,7 @@ const def = (
 });
 
 export const LAYER_REGISTRY: Record<keyof MapLayers, LayerDefinition> = {
+  seidorOffices:           def('seidorOffices', '&#127970;', 'seidorOffices', 'SEIDOR Offices'),
   iranAttacks:              def('iranAttacks',              '&#127919;', 'iranAttacks',              'Middle East Strikes', ['svg', 'deck', 'globe'], _desktop ? 'locked' : undefined),
   hotspots:                 def('hotspots',                 '&#127919;', 'intelHotspots',            'Intel Hotspots'),
   conflicts:                def('conflicts',                '&#9876;',   'conflictZones',            'Conflict Zones'),
@@ -169,6 +170,7 @@ export const LAYER_EXPLANATIONS: Partial<Record<keyof MapLayers, LayerExplanatio
 
 const VARIANT_LAYER_ORDER: Record<MapVariant, Array<keyof MapLayers>> = {
   full: [
+    'seidorOffices',
     'iranAttacks', 'hotspots', 'conflicts',
     'bases', 'nuclear', 'irradiators', 'radiationWatch', 'spaceports',
     'cables', 'pipelines', 'storageFacilities', 'fuelShortages', 'datacenters', 'military',

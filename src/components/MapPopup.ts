@@ -8,6 +8,7 @@ import { renderCrossBorderDetails } from './cross-border-marker';
 import type { RadiationObservation } from '@/services/radiation';
 import { UNDERSEA_CABLES } from '@/config/geo-map';
 import type { StartupHub, Accelerator, TechHQ, CloudRegion } from '@/config/tech-geo';
+import { SEIDOR_OFFICES_SOURCE, type SeidorOffice } from '@/config/seidor-offices';
 import type { TechHubActivity } from '@/services/tech-activity';
 import type { GeoHubActivity } from '@/services/geo-activity';
 import { escapeHtml, sanitizeUrl } from '@/utils/sanitize';
@@ -110,7 +111,7 @@ function fmtDelayMin(min: number | undefined): string {
 /** A news marker's popup: its title and, when known, the cluster's corroboration (#9213). */
 type NewsPopupData = Pick<NewsLocationMarker, 'title' | 'corroboration'>;
 
-export type PopupType = 'conflict' | 'hotspot' | 'earthquake' | 'weather' | 'base' | 'waterway' | 'apt' | 'cyberThreat' | 'nuclear' | 'economic' | 'irradiator' | 'pipeline' | 'cable' | 'cable-advisory' | 'repair-ship' | 'outage' | 'datacenter' | 'datacenterCluster' | 'ais' | 'protest' | 'protestCluster' | 'flight' | 'aircraft' | 'militaryFlight' | 'militaryVessel' | 'militaryFlightCluster' | 'militaryVesselCluster' | 'natEvent' | 'port' | 'spaceport' | 'mineral' | 'startupHub' | 'cloudRegion' | 'techHQ' | 'accelerator' | 'techEvent' | 'techHQCluster' | 'techEventCluster' | 'techActivity' | 'geoActivity' | 'stockExchange' | 'financialCenter' | 'centralBank' | 'commodityHub' | 'iranEvent' | 'gpsJamming' | 'radiation' | 'news' | 'crossBorder';
+export type PopupType = 'conflict' | 'hotspot' | 'earthquake' | 'weather' | 'base' | 'waterway' | 'apt' | 'cyberThreat' | 'nuclear' | 'economic' | 'irradiator' | 'pipeline' | 'cable' | 'cable-advisory' | 'repair-ship' | 'outage' | 'datacenter' | 'datacenterCluster' | 'ais' | 'protest' | 'protestCluster' | 'flight' | 'aircraft' | 'militaryFlight' | 'militaryVessel' | 'militaryFlightCluster' | 'militaryVesselCluster' | 'natEvent' | 'port' | 'spaceport' | 'mineral' | 'startupHub' | 'cloudRegion' | 'techHQ' | 'seidorOffice' | 'accelerator' | 'techEvent' | 'techHQCluster' | 'techEventCluster' | 'techActivity' | 'geoActivity' | 'stockExchange' | 'financialCenter' | 'centralBank' | 'commodityHub' | 'iranEvent' | 'gpsJamming' | 'radiation' | 'news' | 'crossBorder';
 
 interface TechEventPopupData {
   id: string;
@@ -239,7 +240,7 @@ interface DatacenterClusterData {
 
 interface PopupData {
   type: PopupType;
-  data: ConflictZone | Hotspot | Earthquake | WeatherAlert | MilitaryBase | StrategicWaterway | APTGroup | CyberThreat | NuclearFacility | EconomicCenter | GammaIrradiator | Pipeline | UnderseaCable | CableAdvisory | RepairShip | InternetOutage | AIDataCenter | AisDisruptionEvent | SocialUnrestEvent | AirportDelayAlert | PositionSample | MilitaryFlight | MilitaryVessel | MilitaryFlightCluster | MilitaryVesselCluster | NaturalEvent | Port | Spaceport | CriticalMineralProject | StartupHub | CloudRegion | TechHQ | Accelerator | TechEventPopupData | TechHQClusterData | TechEventClusterData | ProtestClusterData | DatacenterClusterData | TechHubActivity | GeoHubActivity | StockExchangePopupData | FinancialCenterPopupData | CentralBankPopupData | CommodityHubPopupData | IranEventPopupData | GpsJammingPopupData | RadiationObservation | NewsPopupData | CrossBorderPoint;
+  data: ConflictZone | Hotspot | Earthquake | WeatherAlert | MilitaryBase | StrategicWaterway | APTGroup | CyberThreat | NuclearFacility | EconomicCenter | GammaIrradiator | Pipeline | UnderseaCable | CableAdvisory | RepairShip | InternetOutage | AIDataCenter | AisDisruptionEvent | SocialUnrestEvent | AirportDelayAlert | PositionSample | MilitaryFlight | MilitaryVessel | MilitaryFlightCluster | MilitaryVesselCluster | NaturalEvent | Port | Spaceport | CriticalMineralProject | StartupHub | CloudRegion | TechHQ | SeidorOffice | Accelerator | TechEventPopupData | TechHQClusterData | TechEventClusterData | ProtestClusterData | DatacenterClusterData | TechHubActivity | GeoHubActivity | StockExchangePopupData | FinancialCenterPopupData | CentralBankPopupData | CommodityHubPopupData | IranEventPopupData | GpsJammingPopupData | RadiationObservation | NewsPopupData | CrossBorderPoint;
   relatedNews?: NewsItem[];
   x: number;
   y: number;
@@ -814,6 +815,8 @@ export class MapPopup {
         return this.renderCloudRegionPopup(data.data as CloudRegion);
       case 'techHQ':
         return this.renderTechHQPopup(data.data as TechHQ);
+      case 'seidorOffice':
+        return this.renderSeidorOfficePopup(data.data as SeidorOffice);
       case 'accelerator':
         return this.renderAcceleratorPopup(data.data as Accelerator);
       case 'techEvent':
@@ -2644,6 +2647,21 @@ ${isFeatureAvailable('wingbitsEnrichment') ? '<div class="wingbits-live-section"
           </div>
           ` : ''}
         </div>
+      </div>
+    `;
+  }
+
+  private renderSeidorOfficePopup(office: SeidorOffice): string {
+    return `
+      <div class="popup-header">
+        <span class="popup-title">🏢 SEIDOR ${escapeHtml(office.name)}</span>
+        <button class="popup-close" aria-label="Close">×</button>
+      </div>
+      <div class="popup-body">
+        <div class="popup-subtitle">${escapeHtml(office.city)} · ${escapeHtml(office.countryCode)}</div>
+        <p class="popup-description">${escapeHtml(office.address)}</p>
+        <p class="popup-description">Map position is approximate (city centre).</p>
+        <a href="${SEIDOR_OFFICES_SOURCE}" target="_blank" rel="noopener noreferrer">SEIDOR office directory</a>
       </div>
     `;
   }

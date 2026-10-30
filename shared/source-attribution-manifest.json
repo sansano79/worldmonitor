@@ -13652,6 +13652,20 @@
       ]
     },
     {
+      "host": "www.seidor.com",
+      "provider": "www.seidor.com",
+      "kind": "structured",
+      "observed": true,
+      "license": "Public office directory; verify terms before redistribution",
+      "attribution": "Credit SEIDOR and link to its office directory.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "src/config/seidor-offices.ts"
+        }
+      ]
+    },
+    {
       "host": "www.sequoiacap.com",
       "provider": "www.sequoiacap.com",
       "kind": "structured",

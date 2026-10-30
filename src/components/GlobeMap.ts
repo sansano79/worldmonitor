@@ -40,6 +40,7 @@ import { getAuthState } from '@/services/auth-state';
 import { resolveTradeRouteSegments, type TradeRouteSegment } from '@/config/trade-routes';
 import { GAMMA_IRRADIATORS } from '@/config/irradiators';
 import { AI_DATA_CENTERS } from '@/config/ai-datacenters';
+import { SEIDOR_OFFICES, type SeidorOffice } from '@/config/seidor-offices';
 import { getCountryBbox, getCountriesGeoJson, getCountryAtCoordinates, getCountryNameByCode } from '@/services/country-geometry';
 import { escapeHtml } from '@/utils/sanitize';
 import { corroborationLabelHtml } from '@/utils/corroboration-flag';
@@ -338,6 +339,10 @@ interface EconomicMarker extends BaseMarker {
   country: string;
   description: string;
 }
+interface SeidorOfficeMarker extends BaseMarker {
+  _kind: 'seidorOffice';
+  office: SeidorOffice;
+}
 interface DatacenterMarker extends BaseMarker {
   _kind: 'datacenter';
   id: string;
@@ -487,7 +492,7 @@ type GlobeMarker =
   | CyberMarker | FireMarker | ProtestMarker
   | UcdpMarker | DisplacementMarker | CrossBorderMarker | ClimateMarker | GpsJamMarker | TechMarker
   | ConflictZoneMarker | MilBaseMarker | NuclearSiteMarker | IrradiatorSiteMarker | SpaceportSiteMarker
-  | EarthquakeMarker | RadiationMarker | EconomicMarker | DatacenterMarker | WaterwayMarker | MineralMarker
+  | EarthquakeMarker | RadiationMarker | EconomicMarker | SeidorOfficeMarker | DatacenterMarker | WaterwayMarker | MineralMarker
   | FlightDelayMarker | NotamRingMarker | CableAdvisoryMarker | RepairShipMarker | AisDisruptionMarker
   | NewsLocationMarker | FlashMarker | SatelliteMarker | SatFootprintMarker | ImagerySceneMarker
   | WebcamMarkerData | WebcamClusterData;
@@ -578,6 +583,7 @@ export class GlobeMap {
   private earthquakeMarkers: EarthquakeMarker[] = [];
   private radiationMarkers: RadiationMarker[] = [];
   private economicMarkers: EconomicMarker[] = [];
+  private seidorOfficeMarkers: SeidorOfficeMarker[] = [];
   private datacenterMarkers: DatacenterMarker[] = [];
   private waterwayMarkers: WaterwayMarker[] = [];
   private mineralMarkers: MineralMarker[] = [];
@@ -1296,6 +1302,9 @@ export class GlobeMap {
       const ec = d.type === 'exchange' ? '#ffd700' : d.type === 'central-bank' ? '#4488ff' : '#44cc88';
       setTrustedHtml(el, trustedHtml(GlobeMap.wrapHit(`<div style="font-size:calc(11px * var(--wm-panel-effective-scale, 1));color:${ec};text-shadow:0 0 4px ${ec}88;">💰</div>`), "legacy direct innerHTML migration"));
       el.title = `${d.name} · ${d.country}`;
+    } else if (d._kind === 'seidorOffice') {
+      setTrustedHtml(el, trustedHtml(GlobeMap.wrapHit('<div style="font-size:11px;color:#3085ff;text-shadow:0 0 4px #3085ff88;">🏢</div>'), "legacy direct innerHTML migration"));
+      el.title = `SEIDOR ${d.office.name} · approximate city location`;
     } else if (d._kind === 'datacenter') {
       setTrustedHtml(el, trustedHtml(GlobeMap.wrapHit(`<div style="font-size:calc(10px * var(--wm-panel-effective-scale, 1));color:#88aaff;text-shadow:0 0 3px #88aaff88;">🖥</div>`), "legacy direct innerHTML migration"));
       el.title = `${d.name} (${d.owner})`;
@@ -1674,6 +1683,10 @@ export class GlobeMap {
       html = `<span style="color:${ec};font-weight:bold;">💰 ${esc(d.name)}</span>` +
              `<br><span style="opacity:.7;">${esc(d.type)} · ${esc(d.country)}</span>` +
              (d.description ? `<br><span style="opacity:.5;white-space:normal;display:block;">${esc(d.description.slice(0, 70))}</span>` : '');
+    } else if (d._kind === 'seidorOffice') {
+      html = `<span style="color:#3085ff;font-weight:bold;">🏢 SEIDOR ${esc(d.office.name)}</span>` +
+             `<br><span style="opacity:.7;white-space:normal;display:block;">${esc(d.office.address)}</span>` +
+             '<br><span style="opacity:.5;">Approximate city location</span>';
     } else if (d._kind === 'datacenter') {
       html = `<span style="color:#88aaff;font-weight:bold;">🖥 ${esc(d.name)}</span>` +
              `<br><span style="opacity:.7;">${esc(d.owner)} · ${esc(d.country)}</span>` +
@@ -2271,6 +2284,7 @@ export class GlobeMap {
     }
     if (this.layers.radiationWatch) add('radiationWatch', this.radiationMarkers);
     if (this.layers.economic) add('economic', this.economicMarkers);
+    if (this.layers.seidorOffices) add('seidorOffices', this.seidorOfficeMarkers, { exempt: true });
     if (this.layers.datacenters) add('datacenters', this.datacenterMarkers);
     if (this.layers.waterways) add('waterways', this.waterwayMarkers);
     if (this.layers.minerals) add('minerals', this.mineralMarkers);
@@ -2590,6 +2604,16 @@ export class GlobeMap {
             type: c.type,
             country: c.country,
             description: c.description ?? '',
+          }));
+        }
+        break;
+      case 'seidorOffices':
+        if (!this.seidorOfficeMarkers.length) {
+          this.seidorOfficeMarkers = SEIDOR_OFFICES.map(office => ({
+            _kind: 'seidorOffice' as const,
+            _lat: office.lat,
+            _lng: office.lon,
+            office,
           }));
         }
         break;
