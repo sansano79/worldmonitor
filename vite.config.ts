@@ -1221,6 +1221,7 @@ export default defineConfig(({ mode }) => {
         },
         input: {
           main: resolve(__dirname, 'index.html'),
+          csm: resolve(__dirname, 'csm.html'),
           embed: resolve(__dirname, 'embed.html'),
           settings: resolve(__dirname, 'settings.html'),
           liveChannels: resolve(__dirname, 'live-channels.html'),

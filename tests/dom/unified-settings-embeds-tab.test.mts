@@ -25,6 +25,7 @@ const session: AuthSession = {
 
 /** Mutated per test; every hasFeature() answer is read through this. */
 const features = { apiAccess: false, mcpAccess: false, embedAccess: true };
+const csmMode = { enabled: false };
 
 const entitlementState: EntitlementState = {
   planKey: 'pro',
@@ -98,6 +99,7 @@ vi.mock('@/config/panels', () => ({
 }));
 
 vi.mock('@/config/variant', () => ({ SITE_VARIANT: 'full' }));
+vi.mock('@/config/csm-mode', () => ({ isCsmMode: () => csmMode.enabled }));
 
 vi.mock('@/services/billing', () => ({
   getSubscription: () => null,
@@ -213,6 +215,7 @@ beforeEach(() => {
   features.apiAccess = false;
   features.mcpAccess = false;
   features.embedAccess = true;
+  csmMode.enabled = false;
   embedKeyRows = [];
   createEmbedKey.mockClear();
   listEmbedKeys.mockClear();
@@ -228,6 +231,21 @@ afterEach(() => {
 });
 
 describe('Settings -> Embeds tab gating', () => {
+  it('keeps CSM settings free of account, billing, and PRO sign-in tabs', () => {
+    csmMode.enabled = true;
+    internal.render(false);
+
+    const tabs = [...internal.overlay.querySelectorAll<HTMLElement>('.unified-settings-tab')]
+      .map((tab) => tab.dataset.tab);
+    expect(tabs).toEqual(['settings', 'panels', 'sources']);
+    expect(internal.overlay.querySelector('[data-panel-id="api-keys"]')).toBeNull();
+    expect(internal.overlay.querySelector('[data-panel-id="billing"]')).toBeNull();
+    expect(internal.overlay.querySelector('[data-panel-id="embeds"]')).toBeNull();
+    expect(internal.overlay.querySelector('[data-panel-id="mcp-clients"]')).toBeNull();
+    expect(internal.overlay.querySelector('[data-panel-id="notifications"]')).toBeNull();
+    expect(internal.overlay.textContent).not.toMatch(/Sign In|Upgrade to Pro|API Keys|Plan & billing/);
+  });
+
   it('shows the tab for a plan with embedAccess but no apiAccess', () => {
     // The load-bearing case: Pro sells embedding without REST access, and the
     // API Keys tab renders an upgrade CTA for exactly this account.

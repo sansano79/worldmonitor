@@ -110,6 +110,7 @@ const SOURCE_DOMAIN_MATCHERS = [
 // Keep ambiguous structured providers explicit so a new unmatched provider
 // fails the build instead of silently becoming "geopolitics".
 const SOURCE_DOMAIN_OVERRIDES = new Map([
+  ['www.seidor.com', 'infrastructure'],
   ['hormuz.data-tracking.net', 'infrastructure'],
   ['Alberta Emergency Alert', 'environment'],
   ['B.C. Evacuation Orders and Alerts', 'environment'],

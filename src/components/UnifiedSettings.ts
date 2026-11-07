@@ -15,6 +15,7 @@ import {
 } from '@/config/panels';
 import { isProUser } from '@/services/widget-store';
 import { SITE_VARIANT } from '@/config/variant';
+import { CSM_SETTINGS_PANEL_KEYS, isCsmMode } from '@/config/csm-mode';
 import { t } from '@/services/i18n';
 import { createSettingsButton } from '@/components/settings-button';
 import { confirmDialog } from '@/components/confirm-dialog';
@@ -852,31 +853,35 @@ export class UnifiedSettings {
     this.notifCleanup = null;
     this.pendingNotifs = null;
 
-    const isSignedIn = getAuthState().user !== null;
+    const csmMode = isCsmMode();
+    const isSignedIn = !csmMode && getAuthState().user !== null;
     const prefs = renderPreferences({
       isDesktopApp: this.config.isDesktopApp,
       onMapProviderChange: this.config.onMapProviderChange,
       onSettingSaved: () => showToast(t('modals.settingsWindow.saved')),
       isSignedIn,
     });
-    const showNotificationsTab = !this.config.isDesktopApp;
+    // The existing notifications screen configures personal, account-bound
+    // WorldMonitor subscriptions. CSM team alerts get their own workflow;
+    // do not expose the PRO/sign-in upsell as a placeholder in this fork.
+    const showNotificationsTab = !csmMode && !this.config.isDesktopApp;
     const notifs = showNotificationsTab
       ? renderNotificationsSettings({ isSignedIn })
       : null;
-    const showMcpClientsTab = hasFeature('mcpAccess');
+    const showMcpClientsTab = !csmMode && hasFeature('mcpAccess');
     // Gated on `embedAccess`, NOT `apiAccess`, for the same reason MCP Clients
     // is gated on `mcpAccess`: both Pro tiers are `apiAccess: false`, so an
     // apiAccess gate would hide embed keys from most of the customers who
     // bought embedding. A tab of its own rather than a section of API Keys so
     // the two credential classes never look interchangeable.
-    const showEmbedsTab = hasEmbedAccessForAccount(getAuthState().user?.role);
+    const showEmbedsTab = !csmMode && hasEmbedAccessForAccount(getAuthState().user?.role);
     const availableTabs: TabId[] = [
       'settings',
-      ...(isSignedIn ? ['billing' as const] : []),
+      ...(!csmMode && isSignedIn ? ['billing' as const] : []),
       'panels',
       'sources',
       ...(showNotificationsTab ? ['notifications' as const] : []),
-      'api-keys',
+      ...(!csmMode ? ['api-keys' as const] : []),
       ...(showEmbedsTab ? ['embeds' as const] : []),
       ...(showMcpClientsTab ? ['mcp-clients' as const] : []),
     ];
@@ -892,18 +897,18 @@ export class UnifiedSettings {
         </div>
         <div class="unified-settings-tabs" role="tablist" aria-label="Settings">
           <button class="${tabClass('settings')}" tabindex="${this.activeTab === 'settings' ? 0 : -1}" data-tab="settings" role="tab" aria-selected="${this.activeTab === 'settings'}" id="us-tab-settings" aria-controls="us-tab-panel-settings">${t('header.tabSettings')}</button>
-          ${isSignedIn ? `<button class="${tabClass('billing')}" tabindex="${this.activeTab === 'billing' ? 0 : -1}" data-tab="billing" role="tab" aria-selected="${this.activeTab === 'billing'}" id="us-tab-billing" aria-controls="us-tab-panel-billing">Plan &amp; billing</button>` : ''}
+          ${!csmMode && isSignedIn ? `<button class="${tabClass('billing')}" tabindex="${this.activeTab === 'billing' ? 0 : -1}" data-tab="billing" role="tab" aria-selected="${this.activeTab === 'billing'}" id="us-tab-billing" aria-controls="us-tab-panel-billing">Plan &amp; billing</button>` : ''}
           <button class="${tabClass('panels')}" tabindex="${this.activeTab === 'panels' ? 0 : -1}" data-tab="panels" role="tab" aria-selected="${this.activeTab === 'panels'}" id="us-tab-panels" aria-controls="us-tab-panel-panels">${t('header.tabPanels')}</button>
           <button class="${tabClass('sources')}" tabindex="${this.activeTab === 'sources' ? 0 : -1}" data-tab="sources" role="tab" aria-selected="${this.activeTab === 'sources'}" id="us-tab-sources" aria-controls="us-tab-panel-sources">${t('header.tabSources')}</button>
           ${showNotificationsTab ? `<button class="${tabClass('notifications')}" tabindex="${this.activeTab === 'notifications' ? 0 : -1}" data-tab="notifications" role="tab" aria-selected="${this.activeTab === 'notifications'}" id="us-tab-notifications" aria-controls="us-tab-panel-notifications">${t('header.tabNotifications')}</button>` : ''}
-          <button class="${tabClass('api-keys')}" tabindex="${this.activeTab === 'api-keys' ? 0 : -1}" data-tab="api-keys" role="tab" aria-selected="${this.activeTab === 'api-keys'}" id="us-tab-api-keys" aria-controls="us-tab-panel-api-keys">API Keys <span class="panel-pro-badge">PRO</span></button>
+          ${!csmMode ? `<button class="${tabClass('api-keys')}" tabindex="${this.activeTab === 'api-keys' ? 0 : -1}" data-tab="api-keys" role="tab" aria-selected="${this.activeTab === 'api-keys'}" id="us-tab-api-keys" aria-controls="us-tab-panel-api-keys">API Keys <span class="panel-pro-badge">PRO</span></button>` : ''}
           ${showEmbedsTab ? `<button class="${tabClass('embeds')}" tabindex="${this.activeTab === 'embeds' ? 0 : -1}" data-tab="embeds" role="tab" aria-selected="${this.activeTab === 'embeds'}" id="us-tab-embeds" aria-controls="us-tab-panel-embeds">Embeds <span class="panel-pro-badge">PRO</span></button>` : ''}
           ${showMcpClientsTab ? `<button class="${tabClass('mcp-clients')}" tabindex="${this.activeTab === 'mcp-clients' ? 0 : -1}" data-tab="mcp-clients" role="tab" aria-selected="${this.activeTab === 'mcp-clients'}" id="us-tab-mcp-clients" aria-controls="us-tab-panel-mcp-clients">MCP Clients <span class="panel-pro-badge">PRO</span></button>` : ''}
         </div>
         <div class="unified-settings-tab-panel${this.activeTab === 'settings' ? ' active' : ''}" data-panel-id="settings" id="us-tab-panel-settings" role="tabpanel" aria-labelledby="us-tab-settings">
           ${prefs.html}
         </div>
-        ${isSignedIn ? `
+        ${!csmMode && isSignedIn ? `
         <div class="unified-settings-tab-panel${this.activeTab === 'billing' ? ' active' : ''}" data-panel-id="billing" id="us-tab-panel-billing" role="tabpanel" aria-labelledby="us-tab-billing">
           <div class="billing-settings-intro">
             <h2>Plan &amp; billing</h2>
@@ -954,9 +959,9 @@ export class UnifiedSettings {
           ${notifs.html}
         </div>
         ` : ''}
-        <div class="unified-settings-tab-panel${this.activeTab === 'api-keys' ? ' active' : ''}" data-panel-id="api-keys" id="us-tab-panel-api-keys" role="tabpanel" aria-labelledby="us-tab-api-keys">
+        ${!csmMode ? `<div class="unified-settings-tab-panel${this.activeTab === 'api-keys' ? ' active' : ''}" data-panel-id="api-keys" id="us-tab-panel-api-keys" role="tabpanel" aria-labelledby="us-tab-api-keys">
           ${this.renderApiKeysContent()}
-        </div>
+        </div>` : ''}
         ${showEmbedsTab ? `
         <div class="unified-settings-tab-panel${this.activeTab === 'embeds' ? ' active' : ''}" data-panel-id="embeds" id="us-tab-panel-embeds" role="tabpanel" aria-labelledby="us-tab-embeds">
           ${this.renderEmbedKeysContent()}
@@ -1414,6 +1419,7 @@ export class UnifiedSettings {
   }
 
   private getAvailablePanelCategories(): Array<{ key: string; label: string }> {
+    if (isCsmMode()) return [{ key: 'all', label: t('header.sourceRegionAll') }];
     return [
       { key: 'all', label: t('header.sourceRegionAll') },
       ...getVariantPanelCategories(this.config.getPanelSettings(), SITE_VARIANT)
@@ -1426,6 +1432,10 @@ export class UnifiedSettings {
     let entries = Object.entries(panelSettings)
       .filter(([key]) => key !== 'runtime-config' || this.config.isDesktopApp)
       .filter(([key]) => !key.startsWith('cw-'));
+
+    if (isCsmMode()) {
+      entries = entries.filter(([key]) => CSM_SETTINGS_PANEL_KEYS.has(key));
+    }
 
     if (this.activePanelCategory !== 'all') {
       const catDef = PANEL_CATEGORY_MAP[this.activePanelCategory];
@@ -1465,7 +1475,8 @@ export class UnifiedSettings {
     if (!container) return;
 
     const savedSettings = this.config.getPanelSettings();
-    const pro = isProUser();
+    const csmMode = isCsmMode();
+    const pro = csmMode || isProUser();
     const entries = this.getVisiblePanelEntries();
     const panelFontScaleLabel = t('preferences.panelFontScale', { defaultValue: 'Text size' });
     const followGlobalFontScaleLabel = t('preferences.followGlobalFontScale', { defaultValue: 'Use global' });
@@ -1473,7 +1484,7 @@ export class UnifiedSettings {
       // Preserve saved config for dynamic cw-* panels; unknown keys should not
       // collapse to getEffectivePanelConfig's disabled synthetic fallback.
       const resolvedPanel = ALL_PANELS[key] ? getEffectivePanelConfig(key, SITE_VARIANT) : panel;
-      const entitled = isPanelEntitled(key, resolvedPanel, pro);
+      const entitled = csmMode || isPanelEntitled(key, resolvedPanel, pro);
       const locked = !entitled;
       const changed = !locked && this.isPanelDraftChanged(key, panel, savedSettings);
       const displayName = this.config.getLocalizedPanelName(key, resolvedPanel.name ?? panel.name);
@@ -1485,7 +1496,7 @@ export class UnifiedSettings {
           <button type="button" class="panel-toggle-item ${panel.enabled && !locked ? 'active' : ''}${changed ? ' changed' : ''}${locked ? ' pro-locked' : ''}" data-panel="${escapeHtml(key)}" ${a11yState.ariaPressed === null ? '' : `aria-pressed="${a11yState.ariaPressed}"`} ${a11yState.ariaLabel === null ? '' : `aria-label="${escapeHtml(a11yState.ariaLabel)}"`} ${locked ? 'data-pro-locked="1"' : ''}>
             <div class="panel-toggle-checkbox" aria-hidden="true">${panel.enabled && !locked ? '\u2713' : ''}${locked ? '\uD83D\uDD12' : ''}</div>
             <span class="panel-toggle-label">${escapeHtml(displayName)}</span>
-            ${(locked || resolvedPanel.premium) ? '<span class="panel-toggle-pro-badge" aria-hidden="true">PRO</span>' : ''}
+            ${!csmMode && (locked || resolvedPanel.premium) ? '<span class="panel-toggle-pro-badge" aria-hidden="true">PRO</span>' : ''}
           </button>
           ${supportsPanelFontScale ? `<label class="panel-font-scale-control">
             <span>${escapeHtml(panelFontScaleLabel)}</span>
@@ -1550,11 +1561,12 @@ export class UnifiedSettings {
   private toggleDraftPanel(key: string): void {
     const panel = this.draftPanelSettings[key];
     if (!panel) return;
+    const csmMode = isCsmMode();
     // Preserve saved config for dynamic cw-* panels; unknown keys should not
     // collapse to getEffectivePanelConfig's disabled synthetic fallback.
     const resolvedPanel = ALL_PANELS[key] ? getEffectivePanelConfig(key, SITE_VARIANT) : panel;
-    if (!panel.enabled && !isPanelEntitled(key, resolvedPanel, isProUser())) return;
-    if (!panel.enabled && !isProUser() && isFreePanelCapCounted(key)) {
+    if (!csmMode && !panel.enabled && !isPanelEntitled(key, resolvedPanel, isProUser())) return;
+    if (!csmMode && !panel.enabled && !isProUser() && isFreePanelCapCounted(key)) {
       const enabledCount = countFreePanelCapUsage(this.draftPanelSettings);
       if (enabledCount >= FREE_MAX_PANELS) {
         showToast(t('modals.settingsWindow.freePanelLimit', { max: String(FREE_MAX_PANELS) }));

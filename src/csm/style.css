@@ -1,0 +1,18 @@
+:root { font-family: system-ui, sans-serif; color: #e7f1ee; background: #101b1b; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+.csm-header { background: #172827; border-bottom: 1px solid #35514c; padding: 1.25rem clamp(1rem, 4vw, 3rem) 0; }
+.csm-brand { font-size: 1.1rem; font-weight: 700; letter-spacing: .03em; margin-bottom: 1rem; }
+nav { display: flex; flex-wrap: wrap; gap: .25rem; }
+nav button { border: 0; border-bottom: 3px solid transparent; background: transparent; color: #b9ceca; cursor: pointer; font: inherit; padding: .8rem 1rem; }
+nav button[aria-current="page"] { color: #fff; border-bottom-color: #5bd6ab; }
+nav button:focus-visible { outline: 2px solid #a6ffdf; outline-offset: -3px; }
+main { max-width: 1300px; margin: auto; padding: clamp(1.5rem, 4vw, 3rem); }
+.csm-intro { max-width: 60rem; margin-bottom: 2rem; }
+.csm-eyebrow { color: #70d9b6; font-size: .75rem; font-weight: 700; letter-spacing: .12em; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.75rem); margin: .5rem 0; }
+.csm-intro > p:last-child, article p { color: #b7cbc7; line-height: 1.55; }
+.csm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 1rem; }
+article { min-height: 10rem; background: #192c2a; border: 1px solid #35514c; border-radius: .6rem; padding: 1.4rem; }
+article h2 { font-size: 1.1rem; margin: 0 0 .7rem; }
+article p { margin: 0; }

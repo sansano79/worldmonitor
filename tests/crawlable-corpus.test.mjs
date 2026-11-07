@@ -420,6 +420,10 @@ const SOURCE_DOMAIN_IDS = new Set([
 ]);
 
 describe('sources catalog domain assignment', () => {
+  it('classifies the SEIDOR office directory as infrastructure', () => {
+    const catalog = buildSourceCatalog([{ provider: 'www.seidor.com', host: 'www.seidor.com', kind: 'structured', references: [{ path: 'src/config/seidor-offices.json' }] }]);
+    assert.equal(catalog[0].domainId, 'infrastructure');
+  });
   it('rejects an empty active-provider catalog', () => {
     assert.throws(() => buildSourceCatalog([]), /Source catalog cannot be empty/);
   });

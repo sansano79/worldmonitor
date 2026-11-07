@@ -13635,6 +13635,20 @@
       ]
     },
     {
+      "host": "www.seidor.com",
+      "provider": "www.seidor.com",
+      "kind": "structured",
+      "observed": true,
+      "license": "Public office directory; verify terms before redistribution",
+      "attribution": "Credit SEIDOR and link to its office directory.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "src/config/seidor-offices.ts"
+        }
+      ]
+    },
+    {
       "host": "www.semianalysis.com",
       "provider": "www.semianalysis.com",
       "kind": "feed+structured",
@@ -13648,20 +13662,6 @@
         },
         {
           "path": "src/config/variants/tech.ts"
-        }
-      ]
-    },
-    {
-      "host": "www.seidor.com",
-      "provider": "www.seidor.com",
-      "kind": "structured",
-      "observed": true,
-      "license": "Public office directory; verify terms before redistribution",
-      "attribution": "Credit SEIDOR and link to its office directory.",
-      "status": "terms-review",
-      "references": [
-        {
-          "path": "src/config/seidor-offices.ts"
         }
       ]
     },

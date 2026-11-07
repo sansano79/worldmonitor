@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { resolveSourceOrigin } from '../scripts/source-origin.mjs';
 
 const offices = JSON.parse(readFileSync(new URL('../src/config/seidor-offices.json', import.meta.url), 'utf8'));
+
+test('the published SEIDOR source is assigned to its headquarters country', () => {
+  assert.equal(resolveSourceOrigin({ provider: 'www.seidor.com', hosts: ['www.seidor.com'] }), 'ES');
+});
 
 test('SEIDOR directory preserves all 78 distinct published offices with usable city positions', () => {
   assert.equal(offices.length, 78);
