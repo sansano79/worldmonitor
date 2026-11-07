@@ -978,7 +978,7 @@ export class UnifiedSettings {
           ${this.renderMcpClientsContent()}
         </div>
         ` : ''}
-        ${legalLinksHtml(WEB_APP_ORIGIN)}
+        ${csmMode ? '' : legalLinksHtml(WEB_APP_ORIGIN)}
       </div>
     `, "legacy direct innerHTML migration"));
 

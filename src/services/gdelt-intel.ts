@@ -140,6 +140,12 @@ const CACHE_TTL = 5 * 60 * 1000;
 const STALE_MAX = 60 * 60 * 1000; // 1h ceiling — never serve cache older than this
 const articleCache = new Map<string, { articles: GdeltArticle[]; timestamp: number }>();
 
+export interface GdeltArticleSearchResult {
+  articles: GdeltArticle[];
+  fetchedAt: Date;
+  stale: boolean;
+}
+
 /**
  * An error body or malformed envelope throws inside the breaker so it counts
  * as a failure (and opens cooldown) instead of a success. Invalid articles
@@ -186,16 +192,16 @@ function toGdeltArticle(a: ProtoGdeltArticle): GdeltArticle {
   };
 }
 
-export async function fetchGdeltArticles(
+export async function fetchGdeltArticlesWithStatus(
   query: string,
   maxrecords = 10,
   timespan = '24h'
-): Promise<GdeltArticle[]> {
+): Promise<GdeltArticleSearchResult> {
   const cacheKey = JSON.stringify([query, maxrecords, timespan, '', '']);
   const cached = articleCache.get(cacheKey);
 
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.articles;
+    return { articles: cached.articles, fetchedAt: new Date(cached.timestamp), stale: false };
   }
 
   const resp = await gdeltBreaker.execute(async () => validatedGdeltResponse(await getClient().searchGdeltDocuments({
@@ -208,13 +214,28 @@ export async function fetchGdeltArticles(
 
   if (resp.error) {
     console.warn(`[GDELT-Intel] RPC error: ${resp.error}`);
-    return staleOrUnavailable(cached);
+    const articles = staleOrUnavailable(cached);
+    if (!cached) throw new Error('GDELT intelligence unavailable');
+    return { articles, fetchedAt: new Date(cached.timestamp), stale: true };
   }
 
   const articles: GdeltArticle[] = (resp.articles || []).map(toGdeltArticle);
+  const breakerState = gdeltBreaker.getDataState();
+  const fetchedAt = breakerState.mode === 'cached' && breakerState.timestamp != null
+    ? breakerState.timestamp
+    : Date.now();
+  const stale = breakerState.mode === 'cached' && Date.now() - fetchedAt >= CACHE_TTL;
 
-  articleCache.set(cacheKey, { articles, timestamp: Date.now() });
-  return articles;
+  articleCache.set(cacheKey, { articles, timestamp: fetchedAt });
+  return { articles, fetchedAt: new Date(fetchedAt), stale };
+}
+
+export async function fetchGdeltArticles(
+  query: string,
+  maxrecords = 10,
+  timespan = '24h',
+): Promise<GdeltArticle[]> {
+  return (await fetchGdeltArticlesWithStatus(query, maxrecords, timespan)).articles;
 }
 
 export async function fetchHotspotContext(hotspot: Hotspot): Promise<GdeltArticle[]> {

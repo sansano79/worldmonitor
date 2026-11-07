@@ -103,6 +103,7 @@ import { mlWorker } from '@/services/ml-worker';
 import { WM_OPEN_NOTIFICATIONS_FOR_COUNTRY } from '@/utils/notify-country-link';
 import { AuthLauncher } from '@/components/AuthLauncher';
 import { AuthHeaderWidget } from '@/components/AuthHeaderWidget';
+import { isCsmMode } from '@/config/csm-mode';
 import { t } from '@/services/i18n';
 import { TvModeController } from '@/services/tv-mode';
 import { getAuthState, subscribeAuthState } from '@/services/auth-state';
@@ -2322,6 +2323,7 @@ export class EventHandlerManager implements AppModule {
   }
 
   setupAuthWidget(): void {
+    if (isCsmMode()) return;
     const modal = new AuthLauncher();
     this.ctx.authModal = modal;
 

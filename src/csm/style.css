@@ -26,6 +26,17 @@ article p { margin: 0; }
 .csm-preference-group legend, .csm-preference-group > label { display: block; font-size: .9rem; font-weight: 650; margin-bottom: .35rem; }
 .csm-preference-group select { width: 100%; min-height: 2.75rem; border: 1px solid #6ba89a; border-radius: .35rem; background: #101b1b; color: inherit; font: inherit; padding: .55rem .7rem; }
 .csm-preference-group select:focus-visible { outline: 2px solid #a6ffdf; outline-offset: 2px; }
+.csm-checklist-group { grid-column: 1 / -1; }
+.csm-checklist { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: .45rem .8rem; margin-top: .65rem; }
+.csm-checklist-item { display: flex; align-items: center; gap: .6rem; min-height: 2.6rem; padding: .45rem .6rem; border: 1px solid #35514c; border-radius: .35rem; cursor: pointer; }
+.csm-checklist-item input { width: 1rem; height: 1rem; accent-color: #5bd6ab; flex: 0 0 auto; }
+.csm-feed-status { margin-bottom: 1rem; font-size: .9rem; }
+.csm-feed-error, .csm-feed-empty, .csm-feed-warming { color: #d9bd79; }
+.csm-feed-items { display: grid; gap: .8rem; list-style: none; margin: 0; padding: 0; }
+.csm-feed-items li { display: grid; gap: .3rem; border-top: 1px solid #35514c; padding-top: .7rem; line-height: 1.45; }
+.csm-feed-items a { color: #a6ffdf; font-weight: 600; text-decoration: none; }
+.csm-feed-items a:hover { text-decoration: underline; }
+.csm-feed-items small { color: #b7cbc7; }
 .csm-preference-note, .csm-settings-status { font-size: .85rem; margin-top: 1rem; }
 .csm-settings-status { min-height: 1.3em; color: #70d9b6; }
 .csm-pending-card { border-style: dashed; }
@@ -37,6 +48,9 @@ article p { margin: 0; }
 #app[data-csm-theme="light"] .csm-eyebrow { color: #187b5c; }
 #app[data-csm-theme="light"] .csm-intro > p:last-child, #app[data-csm-theme="light"] article p { color: #36534b; }
 #app[data-csm-theme="light"] .csm-preference-group select { background: #fff; border-color: #6d9a88; }
+#app[data-csm-theme="light"] .csm-checklist-item, #app[data-csm-theme="light"] .csm-feed-items li { border-color: #b5cdc4; }
+#app[data-csm-theme="light"] .csm-feed-items a { color: #135c44; }
+#app[data-csm-theme="light"] .csm-feed-items small { color: #36534b; }
 #app[data-csm-theme="light"] .csm-settings-status { color: #187b5c; }
 
 @media (max-width: 600px) {
@@ -45,4 +59,5 @@ article p { margin: 0; }
   nav button { flex: 1 1 auto; padding: .7rem .55rem; }
   main { padding: 1.25rem 1rem; }
   .csm-grid { grid-template-columns: minmax(0, 1fr); }
+  .csm-checklist-group { grid-column: auto; }
 }

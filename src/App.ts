@@ -1,6 +1,13 @@
 import type { Monitor, PanelConfig, MapLayers } from '@/types';
 import { WEB_APP_ORIGIN } from '@/config/web-origin';
 import {
+  CSM_DEFAULT_PANEL_KEYS,
+  CSM_SETTINGS_PANEL_KEYS,
+  getCsmDefaultMapLayers,
+  isCsmMode,
+  mergeCsmMapLayers,
+} from '@/config/csm-mode';
+import {
   isStockResearchPath,
   stockResearchSymbolFromPath,
 } from '@/features/stock-research/stock-research-route';
@@ -1020,7 +1027,10 @@ export class App {
     const monitors = loadFromStorage<Monitor[]>(STORAGE_KEYS.monitors, []);
 
     // Use mobile-specific defaults on first load (no saved layers)
-    const defaultLayers = isMobile ? MOBILE_DEFAULT_MAP_LAYERS : DEFAULT_MAP_LAYERS;
+    const standardDefaultLayers = isMobile ? MOBILE_DEFAULT_MAP_LAYERS : DEFAULT_MAP_LAYERS;
+    const defaultLayers = isCsmMode()
+      ? getCsmDefaultMapLayers(standardDefaultLayers)
+      : standardDefaultLayers;
 
     let mapLayers: MapLayers;
     let panelSettings: Record<string, PanelConfig>;
@@ -1111,9 +1121,10 @@ export class App {
         }
       }
     } else {
+      const savedMapLayers = loadFromStorage<MapLayers>(STORAGE_KEYS.mapLayers, defaultLayers);
       mapLayers = normalizeExclusiveChoropleths(
         sanitizeLayersForVariant(
-          loadFromStorage<MapLayers>(STORAGE_KEYS.mapLayers, defaultLayers),
+          isCsmMode() ? mergeCsmMapLayers(savedMapLayers, defaultLayers) : savedMapLayers,
           currentVariant as MapVariant,
         ), null,
       );
@@ -1307,6 +1318,36 @@ export class App {
       }
     }
 
+    if (isCsmMode()) {
+      const previous = panelSettings;
+      const csmPanels: Record<string, PanelConfig> = {};
+      for (const key of CSM_SETTINGS_PANEL_KEYS) {
+        const config = previous[key] ?? getEffectivePanelConfig(key, currentVariant);
+        csmPanels[key] = {
+          ...config,
+          enabled: key in previous ? config.enabled : CSM_DEFAULT_PANEL_KEYS.has(key),
+          proGated: false,
+        };
+      }
+      panelSettings = csmPanels;
+      if (storageAvailable) saveToStorage(STORAGE_KEYS.panels, panelSettings);
+      if (storageAvailable) {
+        const allowed = CSM_SETTINGS_PANEL_KEYS;
+        for (const orderKey of [PANEL_ORDER_KEY, PANEL_ORDER_KEY + '-bottom-set', PANEL_ORDER_KEY + '-bottom']) {
+          try {
+            const raw = localStorage.getItem(orderKey);
+            if (!raw) continue;
+            const order = JSON.parse(raw);
+            if (Array.isArray(order)) {
+              localStorage.setItem(orderKey, JSON.stringify(order.filter((key: unknown) => typeof key === 'string' && allowed.has(key))));
+            }
+          } catch {
+            localStorage.removeItem(orderKey);
+          }
+        }
+      }
+    }
+
     // Desktop key management panel must always remain accessible in Tauri.
     if (isDesktopApp) {
       if (!panelSettings['runtime-config'] || !panelSettings['runtime-config'].enabled) {
@@ -1323,7 +1364,10 @@ export class App {
     const initialUrlState: ParsedMapUrlState | null = parseMapUrlState(window.location.search, mapLayers);
     if (initialUrlState.layers) {
       mapLayers = normalizeExclusiveChoropleths(
-        sanitizeLayersForVariant(initialUrlState.layers, currentVariant as MapVariant), null,
+        sanitizeLayersForVariant(
+          isCsmMode() ? mergeCsmMapLayers(initialUrlState.layers, defaultLayers) : initialUrlState.layers,
+          currentVariant as MapVariant,
+        ), null,
       );
       // #6045 — URL layer deep-links also cannot force locked layers on for free users.
       // Ephemeral: the link is a view, so it must not overwrite the stored
@@ -3467,6 +3511,11 @@ export class App {
    * Safe to call multiple times (idempotent) — e.g. on auth state changes.
    */
   private enforceFreeTierLimits(cloudSyncVersion?: number): boolean {
+    if (isCsmMode()) {
+      this.freeTierGate.cancelFallback();
+      this.reconcileSourceLimitForTier(true);
+      return false;
+    }
     // ── One-time v1 cap-bug recovery ──────────────────────────────────
     // Pre-2026-05-01 the source cap was enforced by Array.sort().slice(),
     // which silently auto-disabled every source past alphabetical position

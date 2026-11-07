@@ -1,4 +1,5 @@
 import type { MapLayers } from '@/types';
+import { CSM_MAP_LAYER_KEYS, isCsmMode } from '@/config/csm-mode';
 // boundary-ignore: isDesktopRuntime is a pure env probe with no service dependencies
 import { isDesktopRuntime } from '@/services/runtime';
 
@@ -244,12 +245,15 @@ export function getCompleteLayerCatalogKeys(variant: MapVariant): Array<keyof Ma
 
 export function getLayersForVariant(variant: MapVariant, kind: RendererKind): LayerDefinition[] {
   return getOrderedLayerKeys(variant)
+    .filter(key => !isCsmMode() || CSM_MAP_LAYER_KEYS.has(key))
     .map(k => LAYER_REGISTRY[k])
     .filter(d => d.renderers.includes(kind));
 }
 
 export function getAllowedLayerKeys(variant: MapVariant): Set<keyof MapLayers> {
-  return new Set(getOrderedLayerKeys(variant));
+  return new Set(getOrderedLayerKeys(variant).filter((key) =>
+    !isCsmMode() || CSM_MAP_LAYER_KEYS.has(key),
+  ));
 }
 
 export function sanitizeLayersForVariant(layers: MapLayers, variant: MapVariant): MapLayers {

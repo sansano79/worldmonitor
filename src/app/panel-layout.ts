@@ -45,6 +45,7 @@ import {
   isPanelEntitled,
   enforceFreePanelLimit,
 } from '@/config';
+import { isCsmMode } from '@/config/csm-mode';
 import { BETA_MODE } from '@/config/beta';
 import { NQ_PULSE_DISCLOSURE } from '@/config/nq-context';
 import { t } from '@/services/i18n';
@@ -1030,6 +1031,7 @@ export class PanelLayoutManager implements AppModule {
   }
 
   async renderLayout(): Promise<void> {
+    const csmMode = isCsmMode();
     const isGlobeMode = getStoredMapModePreference() === 'globe';
     // #5159: the collapsed-map cohort's #mapSection must be CREATED with
     // .collapsed — main.css sets the expanded mobile height with !important
@@ -1058,12 +1060,13 @@ export class PanelLayoutManager implements AppModule {
     const referenceOrigin = this.ctx.isDesktopApp || window.location.hostname.endsWith('.worldmonitor.app')
       ? 'https://www.worldmonitor.app'
       : '';
-    const referenceLinksHtml = DASHBOARD_REFERENCE_LINKS.map(({ label, path }) => {
+    const referenceLinksHtml = csmMode ? '' : DASHBOARD_REFERENCE_LINKS.map(({ label, path }) => {
       const href = `${referenceOrigin}${path}`;
       return `<a href="${href}" target="_blank" rel="noopener">${label}</a>`;
     }).join('');
 
     markLcpDebug('wm:layout:render-start');
+    document.documentElement.classList.toggle('csm-mode', csmMode);
     document.documentElement.classList.add('wm-layout-hydrated');
     setTrustedHtml(this.ctx.container, trustedHtml(`
       ${this.ctx.isDesktopApp ? '<div class="tauri-titlebar" data-tauri-drag-region></div>' : ''}
@@ -1071,7 +1074,7 @@ export class PanelLayoutManager implements AppModule {
       <div id="proBannerSlot" class="pro-banner-slot" aria-live="polite"></div>
       <div class="header" role="banner">
         <div class="header-left">
-          <div class="variant-switcher">${(() => {
+          <div class="variant-switcher">${csmMode ? '' : (() => {
         const local = this.ctx.isDesktopApp || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
         const inIframe = window.self !== window.top;
         const vHref = (v: keyof typeof VARIANT_SWITCHER_DASHBOARD_URLS) =>
@@ -1132,14 +1135,14 @@ export class PanelLayoutManager implements AppModule {
               <span class="variant-label">Good News</span>
             </a>`;
       })()}</div>
-          <span class="logo">MONITOR</span><span class="logo-mobile">World Monitor</span><span class="version">v${__APP_VERSION__}</span>${BETA_MODE ? '<span class="beta-badge">BETA</span>' : ''}
-          <a href="https://x.com/eliehabib" target="_blank" rel="noopener" class="credit-link">
+          <span class="logo">${csmMode ? 'CSM · SEGURIDAD FÍSICA' : 'MONITOR'}</span><span class="logo-mobile">${csmMode ? 'CSM' : 'World Monitor'}</span><span class="version">v${__APP_VERSION__}</span>${BETA_MODE && !csmMode ? '<span class="beta-badge">BETA</span>' : ''}
+          ${csmMode ? '' : `<a href="https://x.com/eliehabib" target="_blank" rel="noopener" class="credit-link">
             <svg class="x-logo" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             <span class="credit-text">@eliehabib</span>
           </a>
           <a href="https://github.com/koala73/worldmonitor" target="_blank" rel="noopener" class="github-link" title="${t('header.viewOnGitHub')}" aria-label="${t('header.viewOnGitHub')}">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-          </a>
+          </a>`}
           <button class="mobile-settings-btn" id="mobileSettingsBtn" title="${t('header.settings')}" aria-label="${t('header.settings')}">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </button>
@@ -1167,29 +1170,29 @@ export class PanelLayoutManager implements AppModule {
         <div class="header-right">
           <button class="search-btn" id="searchBtn"><kbd>⌘K</kbd> ${t('header.search')}</button>
           ${this.ctx.isDesktopApp ? '' : `<button class="copy-link-btn" id="copyLinkBtn">${t('header.copyLink')}</button>`}
-          ${this.ctx.isDesktopApp ? '' : `<button class="copy-link-btn embed-link-btn" id="embedLinkBtn">${t('header.embed')}</button>`}
+          ${this.ctx.isDesktopApp || csmMode ? '' : `<button class="copy-link-btn embed-link-btn" id="embedLinkBtn">${t('header.embed')}</button>`}
           ${this.ctx.isDesktopApp ? '' : `<button class="fullscreen-btn" id="fullscreenBtn" title="${t('header.fullscreen')}" aria-label="${t('header.fullscreen')}">⛶</button>`}
           ${SITE_VARIANT === 'happy' ? `<button class="tv-mode-btn" id="tvModeBtn" title="TV Mode (Shift+T)" aria-label="TV Mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></button>` : ''}
           <span id="unifiedSettingsMount"></span>
-          <span id="authWidgetMount" class="auth-widget-mount"></span>
+          ${csmMode ? '' : '<span id="authWidgetMount" class="auth-widget-mount"></span>'}
         </div>
       </div>
       <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
       <nav class="mobile-menu" id="mobileMenu" aria-label="Menu">
         <div class="mobile-menu-header">
-          <span class="mobile-menu-title">WORLD MONITOR</span>
+          <span class="mobile-menu-title">${csmMode ? 'CSM · SEGURIDAD FÍSICA' : 'WORLD MONITOR'}</span>
           <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
         <div class="mobile-menu-divider"></div>
-        <div class="mobile-menu-account" aria-label="Account">
+        ${csmMode ? '' : `<div class="mobile-menu-account" aria-label="Account">
           <span class="mobile-menu-account-icon" aria-hidden="true">◯</span>
           <div id="mobileAuthWidgetMount"></div>
           <button class="mobile-auth-fallback" id="mobileAuthFallback" type="button">Sign In</button>
-        </div>
+        </div>`}
         <div class="mobile-menu-divider"></div>
-        ${(() => {
+        ${csmMode ? '' : (() => {
         const variants = [
           { key: 'full', icon: '🌍', label: t('header.world') },
           { key: 'tech', icon: '💻', label: t('header.tech') },
@@ -1226,18 +1229,18 @@ export class PanelLayoutManager implements AppModule {
           <span class="mobile-menu-item-icon">${getCurrentTheme() === 'dark' ? '☀️' : '🌙'}</span>
           <span class="mobile-menu-item-label">${getCurrentTheme() === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
         </button>
-        <a class="mobile-menu-item" href="https://x.com/eliehabib" target="_blank" rel="noopener">
+        ${csmMode ? '' : `<a class="mobile-menu-item" href="https://x.com/eliehabib" target="_blank" rel="noopener">
           <span class="mobile-menu-item-icon"><svg class="x-logo" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></span>
           <span class="mobile-menu-item-label">@eliehabib</span>
-        </a>
+        </a>`}
         <div class="mobile-menu-divider"></div>
-        <div class="mobile-menu-footer-links">
+        ${csmMode ? '' : `<div class="mobile-menu-footer-links">
           ${referenceLinksHtml}
           <a href="${referenceOrigin}/pro#pricing" target="_blank" rel="noopener">Pricing</a>
           <a href="https://www.worldmonitor.app/blog/" target="_blank" rel="noopener">Blog</a>
           <a href="https://www.worldmonitor.app/docs/documentation" target="_blank" rel="noopener">Docs</a>
           <a href="https://status.worldmonitor.app/" target="_blank" rel="noopener">Status</a>
-        </div>
+        </div>`}
         <div class="mobile-menu-version">v${__APP_VERSION__}</div>
       </nav>
       <div class="region-sheet-backdrop" id="regionSheetBackdrop"></div>
@@ -1311,15 +1314,15 @@ export class PanelLayoutManager implements AppModule {
           <span class="mobile-tab-icon" aria-hidden="true">•••</span><span>More</span>
         </button>
       </nav>
-      <footer class="site-footer">
+      <footer class="site-footer ${csmMode ? 'csm-site-footer' : ''}">
         <div class="site-footer-brand">
           <img src="/favico/android-chrome-96x96.png" alt="" width="28" height="28" loading="lazy" decoding="async" class="site-footer-icon" />
           <div class="site-footer-brand-text">
-            <span class="site-footer-name">WORLD MONITOR</span>
-            <span class="site-footer-sub">v${__APP_VERSION__} &middot; <a href="https://x.com/eliehabib" target="_blank" rel="noopener" class="site-footer-credit">@eliehabib</a></span>
+            <span class="site-footer-name">${csmMode ? 'CSM · SEGURIDAD FÍSICA' : 'WORLD MONITOR'}</span>
+            <span class="site-footer-sub">v${__APP_VERSION__}${csmMode ? '' : ' &middot; <a href="https://x.com/eliehabib" target="_blank" rel="noopener" class="site-footer-credit">@eliehabib</a>'}</span>
           </div>
         </div>
-        <nav aria-label="World Monitor references">
+        ${csmMode ? '' : `<nav aria-label="World Monitor references">
           ${referenceLinksHtml}
           <a href="${referenceOrigin}/pro#pricing" target="_blank" rel="noopener">Pricing</a>
           <a href="https://www.worldmonitor.app/blog/" target="_blank" rel="noopener">Blog</a>
@@ -1328,8 +1331,8 @@ export class PanelLayoutManager implements AppModule {
           <a href="https://github.com/koala73/worldmonitor" target="_blank" rel="noopener">GitHub</a>
           <a href="https://x.com/worldmonitorai" target="_blank" rel="noopener">X</a>
           ${this.ctx.isDesktopApp ? '' : `<span id="footerDownloadMount"></span>`}
-        </nav>
-        <span class="site-footer-copy">&copy; ${new Date().getFullYear()} World Monitor</span>
+        </nav>`}
+        <span class="site-footer-copy">&copy; ${new Date().getFullYear()} ${csmMode ? 'CSM · Seguridad Física' : 'World Monitor'}</span>
       </footer>
     `, "legacy direct innerHTML migration"));
     // Mark AFTER the innerHTML swap so the timestamp reflects when the new shell

@@ -5,6 +5,7 @@ import {
   scheduleClerkLoad,
   subscribeClerk,
 } from './clerk';
+import { isCsmMode } from '@/config/csm-mode';
 
 /** Minimal user profile exposed to UI components. */
 export interface AuthUser {
@@ -63,6 +64,11 @@ function snapshotSession(): AuthSession {
  * until its own fallback timer expires.
  */
 export async function initAuthState(): Promise<void> {
+  if (isCsmMode()) {
+    _currentSession = { user: null, isPending: false };
+    enqueueSentryCall((s) => s.setUser(null));
+    return;
+  }
   if (!isClerkAuthEnabled()) {
     _currentSession = snapshotSession();
     return;
@@ -77,6 +83,8 @@ export async function initAuthState(): Promise<void> {
 export function subscribeAuthState(callback: (state: AuthSession) => void): () => void {
   // Emit current state immediately
   callback(_currentSession);
+
+  if (isCsmMode()) return () => {};
 
   return subscribeClerk(() => {
     _currentSession = snapshotSession();

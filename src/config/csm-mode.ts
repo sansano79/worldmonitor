@@ -1,3 +1,5 @@
+import type { MapLayers } from '@/types';
+
 /**
  * Enables the fork's single-edition Corporate Security Monitor experience.
  * Keep the default off so the upstream WorldMonitor editions retain their
@@ -32,6 +34,51 @@ export const CSM_SETTINGS_PANEL_KEYS = new Set([
   'cross-source-signals',
 ]);
 
+/** Panels shown on the first CSM visit. Other allowed panels stay opt-in. */
+export const CSM_DEFAULT_PANEL_KEYS = new Set([
+  'map',
+  'live-news',
+  'threat-timeline',
+  'strategic-posture',
+  'cii',
+  'strategic-risk',
+  'intel',
+  'telegram-intel',
+]);
+
+/** Public map layers relevant to physical security; all other layers start off. */
+export const CSM_MAP_LAYER_KEYS = new Set([
+  'seidorOffices',
+  'conflicts',
+  'natural',
+  'weather',
+  'protests',
+  'fires',
+  'diseaseOutbreaks',
+  'displacement',
+  'ucdpEvents',
+  'military',
+]);
+
+export function getCsmDefaultMapLayers(defaults: MapLayers): MapLayers {
+  const layers = { ...defaults };
+  for (const key of Object.keys(layers) as Array<keyof MapLayers>) {
+    layers[key] = CSM_MAP_LAYER_KEYS.has(key) && Boolean(defaults[key]);
+  }
+  layers.seidorOffices = true;
+  return layers;
+}
+
+export function mergeCsmMapLayers(saved: MapLayers, defaults: MapLayers): MapLayers {
+  const layers = { ...defaults };
+  for (const key of Object.keys(layers) as Array<keyof MapLayers>) {
+    layers[key] = CSM_MAP_LAYER_KEYS.has(key)
+      && Boolean(Object.prototype.hasOwnProperty.call(saved, key) ? saved[key] : defaults[key]);
+  }
+  if (!Object.prototype.hasOwnProperty.call(saved, 'seidorOffices')) layers.seidorOffices = true;
+  return layers;
+}
+
 /** News and intelligence categories retained in the CSM source selector. */
 export const CSM_SOURCE_REGION_KEYS = new Set([
   'worldwide',
@@ -43,7 +90,6 @@ export const CSM_SOURCE_REGION_KEYS = new Set([
   'asia',
   'intel',
 ]);
-
 export const CSM_SOURCE_PANEL_KEYS = new Set([
   'politics',
   'crisis',

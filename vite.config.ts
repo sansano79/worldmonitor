@@ -233,25 +233,6 @@ function brotliPrecompressPlugin(): Plugin {
 // the desktop sign-in tab as the dashboard.
 const PAGES_WITH_OWN_HEAD_META = new Set(['verify.html', 'desktop-sign-in.html', 'csm.html']);
 
-/**
- * In the CSM build, `/dashboard` uses the same standalone shell as `/csm.html`.
- * Reuse the CSM document itself so the dashboard entry never downloads or
- * mounts the general WorldMonitor app and cannot drift into a second UI.
- */
-function csmDashboardEntryPlugin(enabled: boolean): Plugin {
-  return {
-    name: 'wm-csm-dashboard-entry',
-    enforce: 'pre',
-    transformIndexHtml: {
-      order: 'pre',
-      async handler(html, context) {
-        if (!enabled || basename(context.filename) !== 'index.html') return html;
-        return await readFile(resolve(__dirname, 'csm.html'), 'utf8');
-      },
-    },
-  };
-}
-
 function htmlVariantPlugin(
   activeMeta: VariantMeta,
   activeVariant: string,
@@ -261,8 +242,7 @@ function htmlVariantPlugin(
   return {
     name: 'html-variant',
     transformIndexHtml(html, ctx) {
-      const preserveHeadMeta = PAGES_WITH_OWN_HEAD_META.has(basename(ctx.filename))
-        || (csmMode && basename(ctx.filename) === 'index.html');
+      const preserveHeadMeta = PAGES_WITH_OWN_HEAD_META.has(basename(ctx.filename));
       let result = preserveHeadMeta ? html : html
         .replace(/<title>.*?<\/title>/, `<title>${activeMeta.title}</title>`)
         .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${activeMeta.title}" />`)
@@ -284,6 +264,13 @@ function htmlVariantPlugin(
         .replace(/"url": "https:\/\/worldmonitor\.app\/"/, `"url": "${activeMeta.url}"`)
         .replace(/"description": "Real-time global intelligence dashboard with live news, markets, military tracking, infrastructure monitoring, and geopolitical data."/, `"description": "${activeMeta.description}"`)
         .replace(/"featureList": \[[\s\S]*?\]/, `"featureList": ${JSON.stringify(activeMeta.features, null, 8).replace(/\n/g, '\n      ')}`);
+
+      if (csmMode && basename(ctx.filename) === 'index.html') {
+        result = result
+          .replace(/<title>.*?<\/title>/, '<title>CSM · Seguridad Física</title>')
+          .replace(/<meta name="description" content=".*?" \/>/, '<meta name="description" content="Monitor de seguridad física: noticias, riesgos geográficos y ubicaciones públicas." />')
+          .replace(/<meta name="robots" content=".*?" \/>/, '<meta name="robots" content="noindex, nofollow" />');
+      }
 
       // Theme-color meta — warm cream for happy variant
       if (activeVariant === 'happy') {
@@ -331,32 +318,26 @@ function htmlVariantPlugin(
   };
 }
 
-function dashboardHtmlOutputPlugin(csmMode = false): Plugin {
+function dashboardHtmlOutputPlugin(): Plugin {
   return {
     name: 'wm-dashboard-html-output',
     apply: 'build',
     enforce: 'post',
     generateBundle(_options, bundle) {
       const dashboardEntry = Object.entries(bundle).find(([, output]) =>
-        output.type === 'asset' && output.fileName === (csmMode ? 'csm.html' : 'index.html')
+        output.type === 'asset' && output.fileName === 'index.html'
       );
       if (!dashboardEntry) {
-        throw new Error(`[vite] expected dashboard HTML entry ${csmMode ? 'csm.html' : 'index.html'} before writing dashboard.html`);
+        throw new Error('[vite] expected index.html dashboard entry before writing dashboard.html');
       }
 
       const [bundleKey, dashboardHtml] = dashboardEntry;
-      if (csmMode) {
-        // Keep csm.html as its own route and emit the exact same shell as the
-        // dashboard route. The CSM stylesheet is intentionally loaded normally.
-        bundle['dashboard.html'] = { ...dashboardHtml, fileName: 'dashboard.html' };
-      } else {
-        delete bundle[bundleKey];
-        dashboardHtml.fileName = 'dashboard.html';
-        if (typeof dashboardHtml.source === 'string') {
-          dashboardHtml.source = deferDashboardStylesheetLinks(dashboardHtml.source, bundle);
-        }
-        bundle['dashboard.html'] = dashboardHtml;
+      delete bundle[bundleKey];
+      dashboardHtml.fileName = 'dashboard.html';
+      if (typeof dashboardHtml.source === 'string') {
+        dashboardHtml.source = deferDashboardStylesheetLinks(dashboardHtml.source, bundle);
       }
+      bundle['dashboard.html'] = dashboardHtml;
     },
   };
 }
@@ -1015,7 +996,6 @@ export default defineConfig(({ mode }) => {
       __BUILD_HASH__: JSON.stringify(process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev'),
     },
     plugins: [
-      csmDashboardEntryPlugin(csmMode),
       // Ship readable dashboard stack traces to Sentry. Without this every
       // browser frame arrives minified (`Rs.loadNews`, `BO`, `v`), which is why
       // triage has had to infer call sites from Vite chunk names.
@@ -1064,7 +1044,7 @@ export default defineConfig(({ mode }) => {
       firstPartyChunkManifestPlugin(),
       dashboardPrecache.plugin,
       chunkSizeWarningPolicyPlugin(),
-      !isDesktopBuild && dashboardHtmlOutputPlugin(csmMode),
+      !isDesktopBuild && dashboardHtmlOutputPlugin(),
       // Variant subdomain SEO pages only make sense on the web deployment,
       // which is always the 'full' build (variant selection is runtime by
       // hostname). Desktop and dedicated VITE_VARIANT builds skip it.
@@ -1254,7 +1234,7 @@ export default defineConfig(({ mode }) => {
           warn(warning);
         },
         input: {
-          main: resolve(__dirname, csmMode ? 'csm.html' : 'index.html'),
+          main: resolve(__dirname, 'index.html'),
           ...(!csmMode ? { csm: resolve(__dirname, 'csm.html') } : {}),
           embed: resolve(__dirname, 'embed.html'),
           settings: resolve(__dirname, 'settings.html'),

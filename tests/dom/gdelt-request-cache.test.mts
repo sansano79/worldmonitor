@@ -31,6 +31,19 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe('GDELT request cache identity through the real breaker', () => {
+  it('reports the original cache timestamp and marks a cached response stale', async () => {
+    vi.useFakeTimers();
+    const { fetchGdeltArticlesWithStatus } = await import('@/services/gdelt-intel');
+    const live = await fetchGdeltArticlesWithStatus('security');
+    expect(live.stale).toBe(false);
+    const fetchedAt = live.fetchedAt.getTime();
+
+    vi.setSystemTime(fetchedAt + 6 * 60 * 1000);
+    const cached = await fetchGdeltArticlesWithStatus('security');
+    expect(cached.stale).toBe(true);
+    expect(cached.fetchedAt.getTime()).toBe(fetchedAt);
+  });
+
   it('separates query, limit and timespan and reuses identical requests', async () => {
     const { fetchGdeltArticles } = await import('@/services/gdelt-intel');
     const first = await fetchGdeltArticles('military', 10, '24h');

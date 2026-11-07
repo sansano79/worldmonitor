@@ -392,6 +392,19 @@ canvas,
   margin-right: 6px;
 }
 
+html.csm-mode .variant-switcher {
+  display: none;
+}
+
+html.csm-mode .logo {
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.csm-site-footer {
+  justify-content: flex-end;
+}
+
 .variant-option {
   display: flex;
   align-items: center;

@@ -178,6 +178,57 @@ async function primeCachedFromStorage(): Promise<void> {
 }
 
 describe('wm-session first RPC after mint (WORLDMONITOR-XP)', () => {
+  it('authenticates the standalone CSM GDELT and Telegram requests through the same session', async () => {
+    const mintedToken = 'wms_csm-public-feed-token';
+    const feedRequests: Array<{ path: string; key: string | null; credentials: RequestCredentials | undefined }> = [];
+    let mintCalls = 0;
+
+    currentFetchHandler = (input, init) => {
+      const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
+      if (url.includes('/api/wm-session')) {
+        mintCalls += 1;
+        return Promise.resolve(new Response(JSON.stringify({
+          exp: FAR_FUTURE,
+          hadSession: false,
+          token: mintedToken,
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      }
+
+      const headers = new Headers(init?.headers);
+      const path = new URL(url).pathname;
+      if (path === '/api/intelligence/v1/search-gdelt-documents' || path === '/api/telegram-feed') {
+        const key = headers.get('X-WorldMonitor-Key');
+        feedRequests.push({ path, key, credentials: init?.credentials });
+        return Promise.resolve(new Response(
+          JSON.stringify(key === mintedToken ? { ok: true } : { error: 'API key required' }),
+          { status: key === mintedToken ? 200 : 401, headers: { 'Content-Type': 'application/json' } },
+        ));
+      }
+      return Promise.resolve(new Response('unhandled', { status: 500 }));
+    };
+
+    const unauthenticated = await currentFetchHandler(
+      'https://api.worldmonitor.app/api/intelligence/v1/search-gdelt-documents?query=security',
+    );
+    assert.equal(unauthenticated.status, 401, 'the protected RPC still rejects a request without a session');
+    feedRequests.length = 0;
+
+    const [gdelt, telegram] = await Promise.all([
+      wrappedFetch('https://api.worldmonitor.app/api/intelligence/v1/search-gdelt-documents?query=security'),
+      wrappedFetch('https://api.worldmonitor.app/api/telegram-feed?limit=50'),
+    ]);
+
+    assert.equal(gdelt.status, 200);
+    assert.equal(telegram.status, 200);
+    assert.equal(mintCalls, 1, 'concurrent CSM feed requests share the initial session mint');
+    assert.deepEqual(feedRequests.map(({ path }) => path).sort(), [
+      '/api/intelligence/v1/search-gdelt-documents',
+      '/api/telegram-feed',
+    ]);
+    assert.ok(feedRequests.every(({ key }) => key === mintedToken));
+    assert.ok(feedRequests.every(({ credentials }) => credentials === 'include'));
+  });
+
   it('attaches X-WorldMonitor-Key on the first anonymous RPC after mint', async () => {
     const mintedToken = 'wms_first-rpc-header-token';
     let firstRpcKey: string | null = 'unset';

@@ -1,5 +1,6 @@
 import type { PanelConfig, MapLayers, DataSourceId } from '@/types';
 import { SITE_VARIANT } from './variant';
+import { CSM_DEFAULT_PANEL_KEYS, isCsmMode } from './csm-mode';
 // boundary-ignore: isDesktopRuntime is a pure env probe with no service dependencies
 import { isDesktopRuntime } from '@/services/runtime';
 // boundary-ignore: getSecretState is a pure env/keychain probe with no service dependencies
@@ -1245,7 +1246,9 @@ export function getEffectivePanelConfig(key: string, variant: string): PanelConf
  * variant-realistic state without duplicating App's merge formula.
  */
 export function getInitialPanelSettingsForVariant(variant: string): Record<string, PanelConfig> {
-  const variantDefaults = new Set(VARIANT_DEFAULTS[variant] ?? VARIANT_DEFAULTS.full ?? []);
+  const variantDefaults = isCsmMode()
+    ? CSM_DEFAULT_PANEL_KEYS
+    : new Set(VARIANT_DEFAULTS[variant] ?? VARIANT_DEFAULTS.full ?? []);
   return Object.fromEntries(
     Object.keys(ALL_PANELS).map((key) => {
       const config = getEffectivePanelConfig(key, variant);

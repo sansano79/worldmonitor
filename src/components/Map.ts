@@ -57,6 +57,7 @@ import {
   setGeoAlertGetter,
 } from '@/services/hotspot-escalation';
 import { getCachedCountryScoreValue } from '@/services/cached-risk-scores';
+import { CSM_MAP_LAYER_KEYS, isCsmMode } from '@/config/csm-mode';
 import { getAlertsNearLocation } from '@/services/geo-convergence';
 import { getCountryAtCoordinates, getCountryBbox } from '@/services/country-geometry';
 import type { CountryClickPayload } from './DeckGLMap';
@@ -660,7 +661,11 @@ export class MapComponent {
                  : SITE_VARIANT === 'happy' ? happyLayers
                  : SITE_VARIANT === 'energy' ? energyLayers
                  : SITE_VARIANT === 'commodity' ? commodityLayers
-                 : fullLayers).filter((key) => !isSunsetLayer(key) && isLayerExecutable(key, 'svg'));
+                 : fullLayers).filter((key) =>
+                   !isSunsetLayer(key)
+                   && isLayerExecutable(key, 'svg')
+                   && (!isCsmMode() || CSM_MAP_LAYER_KEYS.has(key))
+                 );
     const MAX_SVG_LAYERS = 9;
     const enforceLayerLimit = () => {
       const allBtns = Array.from(toggles.querySelectorAll<HTMLButtonElement>('.layer-toggle'));
