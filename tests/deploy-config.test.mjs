@@ -5329,8 +5329,8 @@ describe('variant subdomain dashboard SEO (#4996)', () => {
   it('vite build emits the variant dashboard files the rewrites point at (web full build only)', () => {
     assert.match(
       viteConfigSource,
-      /!isDesktopBuild && activeVariant === 'full' && variantDashboardHtmlPlugin\(\)/,
-      'variantDashboardHtmlPlugin must be registered for web full builds'
+      /!isDesktopBuild && !csmMode && activeVariant === 'full' && variantDashboardHtmlPlugin\(\)/,
+      'variantDashboardHtmlPlugin must be registered only for web full builds outside CSM mode'
     );
   });
 });

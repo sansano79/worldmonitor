@@ -51,9 +51,32 @@ export default async function ({ page, base, shot, log }) {
       return Math.max(...xs) - Math.min(...xs);
     });
     if (horizontalSpan < 200) throw new Error(`SEIDOR markers did not spread across the map: ${horizontalSpan}px`);
-    // Barcelona and Vic overlap at world zoom; choose an isolated office.
-    await page.locator('.seidor-office-marker[aria-label="SEIDOR Johannesburg"]').click();
+    // A narrow viewport clips much of the SVG world map. Pick a marker whose
+    // centre is inside the visible map instead of targeting an offscreen city.
+    const visibleLabel = await page.locator('.seidor-office-marker').evaluateAll(markers => {
+      const candidates = markers.map(marker => ({
+        marker,
+        label: marker.getAttribute('aria-label'),
+        rect: marker.getBoundingClientRect(),
+      })).filter(({ rect, marker }) => rect.x >= 12 && rect.right <= innerWidth - 12
+        && rect.y >= 105 && rect.bottom <= innerHeight - 95
+        && document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2) === marker);
+      return candidates[0]?.label ?? null;
+    });
+    if (!visibleLabel) throw new Error('No SEIDOR marker is visible inside the mobile map');
+    log('visible marker:', visibleLabel);
+    await page.locator(`.seidor-office-marker[aria-label="${visibleLabel}"]`).click({ timeout: 3000 });
     await page.locator('.map-popup').getByText('Map position is approximate (city centre).').waitFor();
+    if (process.env.WM_VERIFY_MOBILE === '1') {
+      await page.locator('.map-popup-sheet.open').waitFor();
+      await page.waitForFunction(() => {
+        const popup = document.querySelector('.map-popup-sheet.open');
+        return popup && popup.getBoundingClientRect().bottom <= innerHeight + 1;
+      });
+      const popupRect = await page.locator('.map-popup-sheet').evaluate(element => element.getBoundingClientRect().toJSON());
+      log('mobile popup:', popupRect);
+      if (popupRect.top >= 744 || popupRect.bottom > 845) throw new Error('Mobile popup is outside the viewport');
+    }
   } else if (renderer === 'deckgl') {
     // The actual picked point is checked in a headed GPU drive.
     log('deck.gl layer toggled; marker picking requires headed GPU drive');

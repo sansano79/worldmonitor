@@ -31,3 +31,28 @@ export const CSM_SETTINGS_PANEL_KEYS = new Set([
   'disease-outbreaks',
   'cross-source-signals',
 ]);
+
+/** News and intelligence categories retained in the CSM source selector. */
+export const CSM_SOURCE_REGION_KEYS = new Set([
+  'worldwide',
+  'us',
+  'europe',
+  'middleeast',
+  'africa',
+  'latam',
+  'asia',
+  'intel',
+]);
+
+export const CSM_SOURCE_PANEL_KEYS = new Set([
+  'politics',
+  'crisis',
+  'us',
+  'gov',
+  'europe',
+  'middleeast',
+  'africa',
+  'latam',
+  'asia',
+  'intel',
+]);

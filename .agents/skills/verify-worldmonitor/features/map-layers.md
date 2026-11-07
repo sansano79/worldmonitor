@@ -9,6 +9,7 @@ The layer controls under the map decide what a user sees on it — conflicts, ho
 - `layer-persist` stores the set under `worldmonitor-layers`.
 - `layer-explain` opens the per-layer explanation from `.layer-explain-btn[data-layer="…"]`.
 - `layer-svg-cap` disables further layers at 9 active in the SVG renderer (`limit-reached`).
+- `seidor-offices` enables 78 public SEIDOR office locations on the full map. The coordinates represent city centres, and the popup shows the published address and source. Its mobile SVG control remains visible when the other layer controls are hidden. This fixed directory does not consume one of the nine live-layer slots.
 - `layer-dimension` switches renderer between 2D and 3D from `#mapDimensionToggle`.
 - `aircraft-emergencies` enables the separate 7500/7600/7700 layer on SVG and DeckGL, opens aircraft details, and checks conflict, missing position, unavailable, expiry, and successful empty states. The globe does not offer this layer.
 
@@ -21,6 +22,7 @@ Run `wm-verify.sh drive .agents/skills/verify-worldmonitor/steps/no2-activity.mj
 Run `wm-verify.sh drive .agents/skills/verify-worldmonitor/steps/notam-airspace.mjs --name notam-airspace` with `WM_VERIFY_HEADED=1` for deck.gl. It replays rows built from `tests/fixtures/nms-notam-geojson.json` by the seeder's own functions, plus one labelled synthetic polygon, because NMS staging ships polygons only on runway NOTAMs. Set `WM_VERIFY_NOTAM_FIXTURE=<payload.json>`, `WM_VERIFY_CENTER=lon,lat` and `WM_VERIFY_ZOOM` for a density view of a larger payload. The step re-serves the basemap with a CORS header because the tile hosts reject localhost origins. It does not prove live NMS data.
 
 Run `wm-verify.sh drive .agents/skills/verify-worldmonitor/steps/aircraft-emergencies.mjs --name aircraft-emergencies`. Set `WM_VERIFY_MOBILE=1` for 390px mobile, or `WM_VERIFY_HEADED=1` for a real GPU desktop map. The step explicitly uses synthetic responses and a controlled clock. It does not prove live provider detection.
+Run `wm-verify.sh drive .agents/skills/verify-worldmonitor/steps/seidor-offices.mjs --name seidor-offices`; set `WM_VERIFY_MOBILE=1` for the 390px layout. It checks the control, 78 SVG markers, a popup, URL and local-storage persistence. The headless drive uses the SVG fallback; deck.gl picking requires a headed GPU drive. The source data is a public office directory and the markers are approximate city locations.
 Set `WM_VERIFY_HEADED=1 WM_VERIFY_CURRENT_ONLY=1` for a separate current-signal visual check with native animation timers. It waits for the DeckGL overlay to mount and selects the synthetic Washington marker at the fixed desktop viewport.
 
 ## How to get to it (user POV)

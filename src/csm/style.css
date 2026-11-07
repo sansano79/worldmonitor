@@ -1,6 +1,7 @@
 :root { font-family: system-ui, sans-serif; color: #e7f1ee; background: #101b1b; }
 * { box-sizing: border-box; }
 body { margin: 0; }
+#app { min-height: 100vh; background: #101b1b; color: #e7f1ee; }
 .csm-header { background: #172827; border-bottom: 1px solid #35514c; padding: 1.25rem clamp(1rem, 4vw, 3rem) 0; }
 .csm-brand { font-size: 1.1rem; font-weight: 700; letter-spacing: .03em; margin-bottom: 1rem; }
 nav { display: flex; flex-wrap: wrap; gap: .25rem; }
@@ -16,3 +17,32 @@ h1 { font-size: clamp(1.8rem, 4vw, 2.75rem); margin: .5rem 0; }
 article { min-height: 10rem; background: #192c2a; border: 1px solid #35514c; border-radius: .6rem; padding: 1.4rem; }
 article h2 { font-size: 1.1rem; margin: 0 0 .7rem; }
 article p { margin: 0; }
+.csm-theme-controls { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.csm-theme-controls button { font: inherit; cursor: pointer; padding: .55rem .8rem; border: 1px solid #6ba89a; border-radius: .35rem; background: transparent; color: inherit; }
+.csm-theme-controls button[aria-pressed="true"] { background: #5bd6ab; color: #10201c; }
+.csm-theme-controls button:focus-visible { outline: 2px solid #a6ffdf; outline-offset: 2px; }
+.csm-preference-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 1rem; margin-top: 1.25rem; }
+.csm-preference-group { min-width: 0; margin: 0; border: 0; padding: 0; }
+.csm-preference-group legend, .csm-preference-group > label { display: block; font-size: .9rem; font-weight: 650; margin-bottom: .35rem; }
+.csm-preference-group select { width: 100%; min-height: 2.75rem; border: 1px solid #6ba89a; border-radius: .35rem; background: #101b1b; color: inherit; font: inherit; padding: .55rem .7rem; }
+.csm-preference-group select:focus-visible { outline: 2px solid #a6ffdf; outline-offset: 2px; }
+.csm-preference-note, .csm-settings-status { font-size: .85rem; margin-top: 1rem; }
+.csm-settings-status { min-height: 1.3em; color: #70d9b6; }
+.csm-pending-card { border-style: dashed; }
+#app[data-csm-theme="light"] { background: #f2f7f4; color: #172d28; }
+#app[data-csm-theme="light"] .csm-header, #app[data-csm-theme="light"] article { background: #fff; border-color: #b5cdc4; }
+#app[data-csm-theme="light"] nav button { color: #35544b; }
+#app[data-csm-theme="light"] nav button[aria-current="page"] { color: #142a23; border-bottom-color: #187b5c; }
+#app[data-csm-theme="light"] nav button:focus-visible, #app[data-csm-theme="light"] .csm-theme-controls button:focus-visible { outline-color: #135c44; }
+#app[data-csm-theme="light"] .csm-eyebrow { color: #187b5c; }
+#app[data-csm-theme="light"] .csm-intro > p:last-child, #app[data-csm-theme="light"] article p { color: #36534b; }
+#app[data-csm-theme="light"] .csm-preference-group select { background: #fff; border-color: #6d9a88; }
+#app[data-csm-theme="light"] .csm-settings-status { color: #187b5c; }
+
+@media (max-width: 600px) {
+  .csm-header { padding-top: 1rem; }
+  nav { margin-inline: -.5rem; }
+  nav button { flex: 1 1 auto; padding: .7rem .55rem; }
+  main { padding: 1.25rem 1rem; }
+  .csm-grid { grid-template-columns: minmax(0, 1fr); }
+}

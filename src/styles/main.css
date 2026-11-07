@@ -15238,7 +15238,7 @@ a.prediction-link:hover {
   }
 
   /* This fork's public office directory remains available on the mobile map. */
-  #layerToggles:has(.layer-toggle[data-layer="seidorOffices"]) {
+  #layerToggles:has(.layer-toggle-row[data-layer="seidorOffices"]) {
     display: flex !important;
     left: 8px;
     bottom: 8px;
@@ -15246,7 +15246,7 @@ a.prediction-link:hover {
     z-index: 60;
   }
 
-  #layerToggles > :not(.layer-toggle[data-layer="seidorOffices"]) {
+  #layerToggles > :not(.layer-toggle-row[data-layer="seidorOffices"]) {
     display: none !important;
   }
 

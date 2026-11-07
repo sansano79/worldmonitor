@@ -304,7 +304,7 @@
     "name": "Dubai",
     "city": "Dubai",
     "countryCode": "AE",
-    "address": "119 Office, Bldg. 4, Gold & Diamond Park, P.O., Box 341448 , Dubai UAE",
+    "address": "Gold and Diamond Park, Building 4, Office 119-124, Al Quoz 3, PO Box 75645, Dubai, UAE",
     "phone": "+971 4 335 7302",
     "lat": 25.2048,
     "lon": 55.2708,
@@ -398,14 +398,14 @@
   {
     "id": "seidor-heredia",
     "name": "Heredia",
-    "city": "Heredia",
+    "city": "Santa Rosa, Santo Domingo",
     "countryCode": "CR",
     "address": "Ofibodegas Empresariales Santa Rosa, #5 800mts Oeste del INBio Parque 103, Santa Rosa, Santo Domingo -, 40306, Costa Rica",
     "phone": "+506 4404 1230",
-    "lat": 10,
-    "lon": -84.12,
+    "lat": 9.9707145,
+    "lon": -84.100218,
     "coordinatePrecision": "city",
-    "coordinateSource": "outbreak-places"
+    "coordinateSource": "municipal-centre"
   },
   {
     "id": "seidor-houston",
@@ -434,14 +434,14 @@
   {
     "id": "seidor-kerala",
     "name": "Kerala",
-    "city": "Kerala",
+    "city": "Koratty",
     "countryCode": "IN",
     "address": "Ground Floor, Indeevaram Infopark Thrissur campus, Koratty - Nalukettu Rd, Koratty, Kerala 680308, India",
     "phone": "+91 480 273 5022",
-    "lat": 8.49,
-    "lon": 76.95,
+    "lat": 10.2688,
+    "lon": 76.3486,
     "coordinatePrecision": "city",
-    "coordinateSource": "outbreak-places"
+    "coordinateSource": "municipal-centre"
   },
   {
     "id": "seidor-kuwait-city",
@@ -482,14 +482,14 @@
   {
     "id": "seidor-lisboa",
     "name": "Lisboa",
-    "city": "Lisboa",
+    "city": "Algés",
     "countryCode": "PT",
     "address": "Alameda Fernão Lopes, nº12, 10º, Edifício Duo Miraflores, 1495-190 Algés, Portugal",
     "phone": "+351 214 177 921",
-    "lat": 38.7223,
-    "lon": -9.1393,
+    "lat": 38.7025,
+    "lon": -9.2294,
     "coordinatePrecision": "city",
-    "coordinateSource": "city-coords"
+    "coordinateSource": "municipal-centre"
   },
   {
     "id": "seidor-london",
@@ -530,14 +530,14 @@
   {
     "id": "seidor-miami",
     "name": "Miami",
-    "city": "Miami",
+    "city": "Doral",
     "countryCode": "US",
     "address": "3105 NW 107th Ave Suite 412, Doral, FL 33172",
     "phone": "+1 786-292-9105",
-    "lat": 25.7617,
-    "lon": -80.1918,
+    "lat": 25.81954,
+    "lon": -80.35533,
     "coordinatePrecision": "city",
-    "coordinateSource": "city-coords"
+    "coordinateSource": "municipal-centre"
   },
   {
     "id": "seidor-montevideo",
@@ -602,12 +602,12 @@
   {
     "id": "seidor-pamplona",
     "name": "Pamplona",
-    "city": "Mutilva Alta",
+    "city": "Cordovilla",
     "countryCode": "ES",
     "address": "Parque Comercial Galaria, Calle V, 3, OF 2º H, 31191 Cordovilla, Navarra, Spain",
     "phone": "+34 911 274 100",
-    "lat": 42.784,
-    "lon": -1.619,
+    "lat": 42.78745,
+    "lon": -1.6472,
     "coordinatePrecision": "city",
     "coordinateSource": "municipal-centre"
   },
@@ -734,7 +734,7 @@
   {
     "id": "seidor-san-borja",
     "name": "San Borja",
-    "city": "San Francisco De Borja",
+    "city": "San Borja",
     "countryCode": "PE",
     "address": "Jr. Carpaccio Nro. 250, Of. 501- 512,, San Borja - Lima",
     "phone": "+51 1 625 9999",

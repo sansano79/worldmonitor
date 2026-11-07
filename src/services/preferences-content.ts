@@ -55,6 +55,7 @@ export interface PreferencesHost {
   onMapProviderChange?: (provider: MapProvider) => void;
   onSettingSaved?: () => void;
   isSignedIn?: boolean;
+  csmMode?: boolean;
 }
 
 export interface PreferencesResult {
@@ -341,6 +342,7 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
 
   html += `</div></details>`;
 
+  if (!host.csmMode) {
   // ── Intelligence group ──
   html += `<details class="wm-pref-group">`;
   html += `<summary>${t('preferences.intelligence')}</summary>`;
@@ -536,6 +538,7 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
   // AI status footer (web-only)
   if (!host.isDesktopApp) {
     html += `<div class="ai-flow-popup-footer"><span class="ai-flow-status-dot" id="usStatusDot"></span><span class="ai-flow-status-text" id="usStatusText"></span></div>`;
+  }
   }
 
   return {

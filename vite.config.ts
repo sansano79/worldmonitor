@@ -231,13 +231,39 @@ function brotliPrecompressPlugin(): Plugin {
 // Pages whose title, description and canonical are their own; the dashboard
 // brand meta below would otherwise mark them duplicates of /dashboard, or title
 // the desktop sign-in tab as the dashboard.
-const PAGES_WITH_OWN_HEAD_META = new Set(['verify.html', 'desktop-sign-in.html']);
+const PAGES_WITH_OWN_HEAD_META = new Set(['verify.html', 'desktop-sign-in.html', 'csm.html']);
 
-function htmlVariantPlugin(activeMeta: VariantMeta, activeVariant: string, isDesktopBuild: boolean): Plugin {
+/**
+ * In the CSM build, `/dashboard` uses the same standalone shell as `/csm.html`.
+ * Reuse the CSM document itself so the dashboard entry never downloads or
+ * mounts the general WorldMonitor app and cannot drift into a second UI.
+ */
+function csmDashboardEntryPlugin(enabled: boolean): Plugin {
+  return {
+    name: 'wm-csm-dashboard-entry',
+    enforce: 'pre',
+    transformIndexHtml: {
+      order: 'pre',
+      async handler(html, context) {
+        if (!enabled || basename(context.filename) !== 'index.html') return html;
+        return await readFile(resolve(__dirname, 'csm.html'), 'utf8');
+      },
+    },
+  };
+}
+
+function htmlVariantPlugin(
+  activeMeta: VariantMeta,
+  activeVariant: string,
+  isDesktopBuild: boolean,
+  csmMode: boolean,
+): Plugin {
   return {
     name: 'html-variant',
     transformIndexHtml(html, ctx) {
-      let result = PAGES_WITH_OWN_HEAD_META.has(basename(ctx.filename)) ? html : html
+      const preserveHeadMeta = PAGES_WITH_OWN_HEAD_META.has(basename(ctx.filename))
+        || (csmMode && basename(ctx.filename) === 'index.html');
+      let result = preserveHeadMeta ? html : html
         .replace(/<title>.*?<\/title>/, `<title>${activeMeta.title}</title>`)
         .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${activeMeta.title}" />`)
         .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${activeMeta.description}" />`)
@@ -305,26 +331,32 @@ function htmlVariantPlugin(activeMeta: VariantMeta, activeVariant: string, isDes
   };
 }
 
-function dashboardHtmlOutputPlugin(): Plugin {
+function dashboardHtmlOutputPlugin(csmMode = false): Plugin {
   return {
     name: 'wm-dashboard-html-output',
     apply: 'build',
     enforce: 'post',
     generateBundle(_options, bundle) {
       const dashboardEntry = Object.entries(bundle).find(([, output]) =>
-        output.type === 'asset' && output.fileName === 'index.html'
+        output.type === 'asset' && output.fileName === (csmMode ? 'csm.html' : 'index.html')
       );
       if (!dashboardEntry) {
-        throw new Error('[vite] expected dashboard HTML entry index.html before renaming it to dashboard.html');
+        throw new Error(`[vite] expected dashboard HTML entry ${csmMode ? 'csm.html' : 'index.html'} before writing dashboard.html`);
       }
 
       const [bundleKey, dashboardHtml] = dashboardEntry;
-      delete bundle[bundleKey];
-      dashboardHtml.fileName = 'dashboard.html';
-      if (typeof dashboardHtml.source === 'string') {
-        dashboardHtml.source = deferDashboardStylesheetLinks(dashboardHtml.source, bundle);
+      if (csmMode) {
+        // Keep csm.html as its own route and emit the exact same shell as the
+        // dashboard route. The CSM stylesheet is intentionally loaded normally.
+        bundle['dashboard.html'] = { ...dashboardHtml, fileName: 'dashboard.html' };
+      } else {
+        delete bundle[bundleKey];
+        dashboardHtml.fileName = 'dashboard.html';
+        if (typeof dashboardHtml.source === 'string') {
+          dashboardHtml.source = deferDashboardStylesheetLinks(dashboardHtml.source, bundle);
+        }
+        bundle['dashboard.html'] = dashboardHtml;
       }
-      bundle['dashboard.html'] = dashboardHtml;
     },
   };
 }
@@ -955,6 +987,7 @@ export default defineConfig(({ mode }) => {
 
   const isE2E = process.env.VITE_E2E === '1';
   const isDesktopBuild = process.env.VITE_DESKTOP_RUNTIME === '1';
+  const csmMode = process.env.VITE_CSM_MODE === 'true';
   const activeVariant = process.env.VITE_VARIANT || 'full';
   const activeMeta = VARIANT_META[activeVariant] || VARIANT_META.full;
   const emitPublicSourceMaps = process.env.WM_EMIT_SOURCEMAPS === '1'
@@ -982,6 +1015,7 @@ export default defineConfig(({ mode }) => {
       __BUILD_HASH__: JSON.stringify(process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev'),
     },
     plugins: [
+      csmDashboardEntryPlugin(csmMode),
       // Ship readable dashboard stack traces to Sentry. Without this every
       // browser frame arrives minified (`Rs.loadNews`, `BO`, `v`), which is why
       // triage has had to infer call sites from Vite chunk names.
@@ -1026,15 +1060,15 @@ export default defineConfig(({ mode }) => {
           });
         },
       },
-      htmlVariantPlugin(activeMeta, activeVariant, isDesktopBuild),
+      htmlVariantPlugin(activeMeta, activeVariant, isDesktopBuild, csmMode),
       firstPartyChunkManifestPlugin(),
       dashboardPrecache.plugin,
       chunkSizeWarningPolicyPlugin(),
-      !isDesktopBuild && dashboardHtmlOutputPlugin(),
+      !isDesktopBuild && dashboardHtmlOutputPlugin(csmMode),
       // Variant subdomain SEO pages only make sense on the web deployment,
       // which is always the 'full' build (variant selection is runtime by
       // hostname). Desktop and dedicated VITE_VARIANT builds skip it.
-      !isDesktopBuild && activeVariant === 'full' && variantDashboardHtmlPlugin(),
+      !isDesktopBuild && !csmMode && activeVariant === 'full' && variantDashboardHtmlPlugin(),
       webMcpDevSecurityHeadersPlugin(),
       polymarketPlugin(),
       rssProxyPlugin(),
@@ -1220,8 +1254,8 @@ export default defineConfig(({ mode }) => {
           warn(warning);
         },
         input: {
-          main: resolve(__dirname, 'index.html'),
-          csm: resolve(__dirname, 'csm.html'),
+          main: resolve(__dirname, csmMode ? 'csm.html' : 'index.html'),
+          ...(!csmMode ? { csm: resolve(__dirname, 'csm.html') } : {}),
           embed: resolve(__dirname, 'embed.html'),
           settings: resolve(__dirname, 'settings.html'),
           liveChannels: resolve(__dirname, 'live-channels.html'),

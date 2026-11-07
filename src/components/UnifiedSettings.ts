@@ -1,4 +1,4 @@
-import { CANONICAL_FEEDS, INTEL_SOURCES, SOURCE_REGION_MAP } from '@/config/feeds';
+import { CANONICAL_FEEDS, getSourcePanelId, INTEL_SOURCES, SOURCE_REGION_MAP } from '@/config/feeds';
 import { WEB_APP_ORIGIN } from '@/config/web-origin';
 import { openExternalUrl } from '@/services/external-navigation';
 import { THEATER_PRESETS, getTheaterPreset, getTheaterPresetEnableList, resolveTheaterPresetSources, type TheaterPreset } from '@/config/theater-presets';
@@ -15,7 +15,12 @@ import {
 } from '@/config/panels';
 import { isProUser } from '@/services/widget-store';
 import { SITE_VARIANT } from '@/config/variant';
-import { CSM_SETTINGS_PANEL_KEYS, isCsmMode } from '@/config/csm-mode';
+import {
+  CSM_SETTINGS_PANEL_KEYS,
+  CSM_SOURCE_PANEL_KEYS,
+  CSM_SOURCE_REGION_KEYS,
+  isCsmMode,
+} from '@/config/csm-mode';
 import { t } from '@/services/i18n';
 import { createSettingsButton } from '@/components/settings-button';
 import { confirmDialog } from '@/components/confirm-dialog';
@@ -860,6 +865,7 @@ export class UnifiedSettings {
       onMapProviderChange: this.config.onMapProviderChange,
       onSettingSaved: () => showToast(t('modals.settingsWindow.saved')),
       isSignedIn,
+      csmMode,
     });
     // The existing notifications screen configures personal, account-bound
     // WorldMonitor subscriptions. CSM team alerts get their own workflow;
@@ -887,7 +893,7 @@ export class UnifiedSettings {
     ];
     this.activeTab = normalizeSettingsTab(this.activeTab, availableTabs);
     const tabClass = (id: TabId) => `unified-settings-tab${this.activeTab === id ? ' active' : ''}`;
-    const applicablePresets = this.getApplicableTheaterPresets();
+    const applicablePresets = csmMode ? [] : this.getApplicableTheaterPresets();
 
     setTrustedHtml(this.overlay, trustedHtml(`
       <div class="modal unified-settings-modal">
@@ -1617,8 +1623,9 @@ export class UnifiedSettings {
     ];
 
     for (const [regionKey, regionDef] of Object.entries(SOURCE_REGION_MAP)) {
+      if (isCsmMode() && !CSM_SOURCE_REGION_KEYS.has(regionKey)) continue;
       if (regionKey === 'intel') {
-        if (INTEL_SOURCES.length > 0) {
+        if (INTEL_SOURCES.some((feed) => !isCsmMode() || allowed.has(feed.name))) {
           regions.push({ key: regionKey, label: t(regionDef.labelKey) });
         }
         continue;
@@ -1640,12 +1647,15 @@ export class UnifiedSettings {
     // already covers the active preset + any custom panels the user enabled —
     // so a customized-in panel's sources show under their proper region pill,
     // not just the 'all' view.
-    const allowed = new Set(this.config.getAllSourceNames());
+    const allowed = new Set(this.getCsmAwareSourceNames());
 
     for (const [regionKey, regionDef] of Object.entries(SOURCE_REGION_MAP)) {
+      if (isCsmMode() && !CSM_SOURCE_REGION_KEYS.has(regionKey)) continue;
       const sources: string[] = [];
       if (regionKey === 'intel') {
-        INTEL_SOURCES.forEach(f => sources.push(f.name));
+        INTEL_SOURCES.forEach((feed) => {
+          if (!isCsmMode() || allowed.has(feed.name)) sources.push(feed.name);
+        });
       } else {
         for (const fk of regionDef.feedKeys) {
           for (const f of CANONICAL_FEEDS[fk] ?? []) {
@@ -1664,7 +1674,7 @@ export class UnifiedSettings {
   private getVisibleSourceNames(): string[] {
     let sources: string[];
     if (this.activeSourceRegion === 'all') {
-      sources = this.config.getAllSourceNames();
+      sources = this.getCsmAwareSourceNames();
     } else {
       const byRegion = this.getSourcesByRegion();
       sources = byRegion.get(this.activeSourceRegion) || [];
@@ -1676,6 +1686,12 @@ export class UnifiedSettings {
     }
 
     return sources;
+  }
+
+  private getCsmAwareSourceNames(): string[] {
+    const sources = this.config.getAllSourceNames();
+    if (!isCsmMode()) return sources;
+    return sources.filter((source) => CSM_SOURCE_PANEL_KEYS.has(getSourcePanelId(source)));
   }
 
   private renderRegionPills(): void {
@@ -1712,8 +1728,8 @@ export class UnifiedSettings {
     if (!counter) return;
 
     const disabled = this.config.getDisabledSources();
-    const allSources = this.config.getAllSourceNames();
-    const enabledTotal = allSources.length - disabled.size;
+    const allSources = this.getCsmAwareSourceNames();
+    const enabledTotal = allSources.filter((source) => !disabled.has(source)).length;
 
     counter.textContent = t('header.sourcesEnabled', { enabled: String(enabledTotal), total: String(allSources.length) });
   }
