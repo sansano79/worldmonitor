@@ -1071,7 +1071,7 @@ export class PanelLayoutManager implements AppModule {
     setTrustedHtml(this.ctx.container, trustedHtml(`
       ${this.ctx.isDesktopApp ? '<div class="tauri-titlebar" data-tauri-drag-region></div>' : ''}
       <a href="#main" class="skip-link">Skip to main content</a>
-      <div id="proBannerSlot" class="pro-banner-slot" aria-live="polite"></div>
+      ${csmMode ? '' : '<div id="proBannerSlot" class="pro-banner-slot" aria-live="polite"></div>'}
       <div class="header" role="banner">
         <div class="header-left">
           <div class="variant-switcher">${csmMode ? '' : (() => {
@@ -1162,7 +1162,7 @@ export class PanelLayoutManager implements AppModule {
               <option value="oceania">${t('components.deckgl.views.oceania')}</option>
             </select>
           </div>
-          <span id="missionPresetMount" class="mission-preset-mount"></span>
+          ${csmMode ? '' : '<span id="missionPresetMount" class="mission-preset-mount"></span>'}
           <button class="mobile-search-btn" id="mobileSearchBtn" aria-label="${t('header.search')}">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </button>
@@ -1215,11 +1215,11 @@ export class PanelLayoutManager implements AppModule {
           <span class="mobile-menu-item-label">${t('components.deckgl.views.global')}</span>
           <span class="mobile-menu-chevron">▸</span>
         </button>
-        <button class="mobile-menu-item" id="mobileMenuMission">
+        ${csmMode ? '' : `<button class="mobile-menu-item" id="mobileMenuMission">
           <span class="mobile-menu-item-icon">◎</span>
           <span class="mobile-menu-item-label">Mission</span>
           <span class="mobile-menu-chevron">▸</span>
-        </button>
+        </button>`}
         <div class="mobile-menu-divider"></div>
         <button class="mobile-menu-item" id="mobileMenuSettings">
           <span class="mobile-menu-item-icon">⚙️</span>

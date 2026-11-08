@@ -267,9 +267,27 @@ function htmlVariantPlugin(
 
       if (csmMode && basename(ctx.filename) === 'index.html') {
         result = result
+          .replace(/<html lang="[^"]*">/, '<html lang="es">')
           .replace(/<title>.*?<\/title>/, '<title>CSM · Seguridad Física</title>')
+          .replace(/<meta name="title" content=".*?" \/>/, '<meta name="title" content="CSM · Seguridad Física" />')
           .replace(/<meta name="description" content=".*?" \/>/, '<meta name="description" content="Monitor de seguridad física: noticias, riesgos geográficos y ubicaciones públicas." />')
-          .replace(/<meta name="robots" content=".*?" \/>/, '<meta name="robots" content="noindex, nofollow" />');
+          .replace(/<meta name="keywords" content=".*?" \/>/, '<meta name="keywords" content="seguridad física, riesgos por país, incidentes, viajes ejecutivos" />')
+          .replace(/<meta name="author" content=".*?" \/>/, '<meta name="author" content="CSM" />')
+          .replace(/<meta name="application-name" content=".*?" \/>/, '<meta name="application-name" content="CSM" />')
+          .replace(/<meta name="subject" content=".*?" \/>/, '<meta name="subject" content="Seguridad física y riesgos geográficos" />')
+          .replace(/<meta name="classification" content=".*?" \/>/, '<meta name="classification" content="Monitor de seguridad física" />')
+          .replace(/<meta name="robots" content=".*?" \/>/, '<meta name="robots" content="noindex, nofollow" />')
+          .replace(/<link rel="canonical" href=".*?" \/>\s*/, '')
+          .replace(/<link rel="alternate" hreflang="[^"]+" href="[^"]+" \/>\s*/g, '')
+          .replace(/<meta (?:property="og:[^"]+"|name="twitter:[^"]+")[^>]*\/>\s*/g, '')
+          .replace(/<script type="application\/ld\+json"[^>]*>[\s\S]*?<\/script>\s*/g, '')
+          .replace(/<h1 class="app-heading">[\s\S]*?<\/h1>\s*/, '')
+          .replace(/<section class="app-seo-summary">[\s\S]*?<\/section>\s*/, '')
+          .replace(/<noscript>[\s\S]*?<\/noscript>/, '<noscript><main id="dashboard-noscript" class="dashboard-noscript"><h2>CSM necesita JavaScript para mostrar el mapa y las señales de seguridad.</h2></main></noscript>')
+          .replace(/var dismissKey='wm-pro-banner-launched-dismissed';[\s\S]*?document\.documentElement\.classList\.add\('wm-pro-banner-reserved'\);/, '')
+          .replace('<span>World Monitor</span>', '<span>CSM</span>')
+          .replace(/World Monitor dashboard loading/g, 'CSM dashboard loading')
+          .replace(/World Monitor Dashboard shell loading/g, 'CSM dashboard shell loading');
       }
 
       // Theme-color meta — warm cream for happy variant

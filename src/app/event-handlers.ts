@@ -910,6 +910,7 @@ export class EventHandlerManager implements AppModule {
   }
 
   private setupMissionPresets(): void {
+    if (isCsmMode()) return;
     this.renderMissionPresetControl();
 
     const shouldPrompt =
@@ -2005,7 +2006,7 @@ export class EventHandlerManager implements AppModule {
   }
 
   setupPizzIntIndicator(): void {
-    if (SITE_VARIANT !== 'full') return;
+    if (SITE_VARIANT !== 'full' || isCsmMode()) return;
 
     this.ctx.pizzintIndicator = new PizzIntIndicator();
     const headerLeft = this.ctx.container.querySelector('.header-left');
@@ -2024,6 +2025,7 @@ export class EventHandlerManager implements AppModule {
   }
 
   setupExportPanel(): void {
+    if (isCsmMode()) return;
     const getExportData = () => {
       const allCards = this.ctx.correlationEngine?.getAllCards() ?? [];
       const disabledCount = this.ctx.disabledSources.size;

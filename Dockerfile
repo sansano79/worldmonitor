@@ -12,6 +12,7 @@ FROM node:24-alpine@sha256:feb76650b7195319268c59cb2d419c732d6c499b13bf5296f16ab
 
 WORKDIR /app
 ENV npm_config_install_links=true
+ARG VITE_CSM_MODE=false
 
 # Install root dependencies (layer-cached until package.json changes)
 COPY package.json package-lock.json ./
@@ -38,23 +39,16 @@ RUN node scripts/generate-inventory-facts.mjs
 # Output is api/**/*.js alongside the source .ts files
 RUN node docker/build-handlers.mjs
 
-# public/pro/ is a build product, not committed bytes (#6898), so this image has
-# to build it. Skipping it does NOT 404: this image installs docker/nginx.conf,
-# whose `location /` ends in `try_files $uri $uri/ /dashboard.html`,
-# so /pro would quietly serve the dashboard SPA shell with a 200 — wrong content
-# under a real URL, which is worse than a missing page. (docker/Dockerfile is the
-# one with an explicit `location ^~ /pro` block, in nginx.conf.template.)
-# build:pro installs pro-test's own lockfile.
-RUN npm run build:pro
+# The CSM image is a complete standalone product and does not include the
+# separate WorldMonitor /pro application. General images still build and verify
+# those pages as before.
+RUN if [ "$VITE_CSM_MODE" != "true" ]; then npm run build:pro; fi
 
 # Build the Vite frontend (outputs to dist/)
 # Skip blog build — blog-site has its own deps not installed here
-RUN npx tsc && npx vite build
-# Assert the /pro pages survived the public/ -> dist/ copy (#6898). build:pro
-# succeeding proves public/pro/ exists; it does NOT prove Vite copied it, and
-# docker/nginx.conf's SPA fallback would serve the dashboard shell at 200 for a
-# missing /pro rather than failing visibly.
-RUN test -s dist/pro/index.html && test -s dist/pro/welcome.html
+RUN VITE_CSM_MODE="$VITE_CSM_MODE" npx tsc && VITE_CSM_MODE="$VITE_CSM_MODE" npx vite build
+# Assert the /pro pages survived the public/ -> dist/ copy for general images.
+RUN if [ "$VITE_CSM_MODE" != "true" ]; then test -s dist/pro/index.html && test -s dist/pro/welcome.html; fi
 
 # ── Stage 2: Runtime dependencies ───────────────────────────────────────────
 FROM node:24-alpine@sha256:feb76650b7195319268c59cb2d419c732d6c499b13bf5296f16ab59eb1f0a4f3 AS runtime-deps

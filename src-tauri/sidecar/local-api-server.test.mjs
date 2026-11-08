@@ -1908,6 +1908,129 @@ test('allows only Docker mode to fetch configured private Redis REST origin', as
   }
 });
 
+test('allows only fixed Docker Telegram relay paths and blocks other private targets', async () => {
+  const originalRelayUrl = process.env.WS_RELAY_URL;
+  const originalRelaySecret = process.env.RELAY_SHARED_SECRET;
+  const originalUntrustedRelayUrl = process.env.WM_TEST_UNTRUSTED_RELAY_URL;
+  let upstreamHits = 0;
+  let untrustedHits = 0;
+  let receivedRelayAuth = false;
+
+  const untrustedUpstream = createServer((_req, res) => {
+    untrustedHits += 1;
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ secret: 'must-not-be-reached' }));
+  });
+  const untrustedPort = await listen(untrustedUpstream);
+  const untrustedOrigin = `http://127.0.0.1:${untrustedPort}`;
+
+  const upstream = createServer((req, res) => {
+    upstreamHits += 1;
+    receivedRelayAuth = req.headers['x-relay-key'] === 'test-relay-secret';
+    if (req.url.includes('synthetic=redirect')) {
+      res.writeHead(302, { location: `${untrustedOrigin}/private` });
+      res.end();
+      return;
+    }
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ ok: true }));
+  });
+  const upstreamPort = await listen(upstream);
+  const relayOrigin = `http://127.0.0.1:${upstreamPort}`;
+
+  const localApi = await setupApiDir({
+    'telegram-feed-probe.js': `
+      export default async function handler(request) {
+        const params = new URL(request.url).searchParams;
+        const relayOrigin = params.get('target') === 'user'
+          ? process.env.WM_TEST_UNTRUSTED_RELAY_URL
+          : process.env.WS_RELAY_URL;
+        const path = params.get('path') === 'unexpected'
+          ? '/private-settings'
+          : '/telegram/feed?limit=1' + (params.get('redirect') === '1' ? '&synthetic=redirect' : '');
+        const upstream = await fetch(relayOrigin + path, {
+          headers: {
+            'x-relay-key': process.env.RELAY_SHARED_SECRET,
+            Authorization: 'Bearer ' + process.env.RELAY_SHARED_SECRET,
+          },
+        });
+        if (params.get('redirect') === '1') {
+          await fetch(upstream.headers.get('location'));
+        }
+        const payload = await upstream.text();
+        return new Response(payload, {
+          status: upstream.status,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+    `,
+  });
+
+  async function runProbe(mode, query = '') {
+    const app = await createLocalApiServer({
+      port: 0,
+      apiDir: localApi.apiDir,
+      mode,
+      logger: { log() {}, warn() {}, error() {} },
+    });
+    const { port } = await app.start();
+    try {
+      return await authFetch(`http://127.0.0.1:${port}/api/telegram-feed-probe${query}`);
+    } finally {
+      await app.close();
+    }
+  }
+
+  process.env.WS_RELAY_URL = relayOrigin;
+  process.env.RELAY_SHARED_SECRET = 'test-relay-secret';
+  process.env.WM_TEST_UNTRUSTED_RELAY_URL = untrustedOrigin;
+
+  try {
+    const dockerResponse = await runProbe('docker');
+    assert.equal(dockerResponse.status, 200);
+    assert.deepEqual(await dockerResponse.json(), { ok: true });
+    assert.equal(upstreamHits, 1);
+    assert.equal(receivedRelayAuth, true);
+
+    const userTargetResponse = await runProbe('docker', '?target=user');
+    assert.equal(userTargetResponse.status, 502);
+    assert.match((await userTargetResponse.json()).reason, /SSRF blocked/);
+    assert.equal(untrustedHits, 0, 'a caller-provided private URL must remain blocked');
+
+    const otherRelayPathResponse = await runProbe('docker', '?path=unexpected');
+    assert.equal(otherRelayPathResponse.status, 502);
+    assert.match((await otherRelayPathResponse.json()).reason, /SSRF blocked/);
+    assert.equal(upstreamHits, 1, 'the configured relay origin must not grant arbitrary path access');
+
+    const redirectResponse = await runProbe('docker', '?redirect=1');
+    assert.equal(redirectResponse.status, 502);
+    assert.match((await redirectResponse.json()).reason, /SSRF blocked/);
+    assert.equal(untrustedHits, 0, 'a redirect from the configured relay must not widen the allowlist');
+    assert.equal(upstreamHits, 2, 'the redirect begins only at an approved Telegram path');
+
+    const desktopResponse = await runProbe('desktop-sidecar');
+    assert.equal(desktopResponse.status, 502);
+    const desktopBody = await desktopResponse.json();
+    assert.equal(desktopBody.error, 'Local handler error');
+    assert.match(desktopBody.reason, /SSRF blocked/);
+    assert.equal(upstreamHits, 2);
+  } finally {
+    if (originalRelayUrl === undefined) delete process.env.WS_RELAY_URL;
+    else process.env.WS_RELAY_URL = originalRelayUrl;
+    if (originalRelaySecret === undefined) delete process.env.RELAY_SHARED_SECRET;
+    else process.env.RELAY_SHARED_SECRET = originalRelaySecret;
+    if (originalUntrustedRelayUrl === undefined) delete process.env.WM_TEST_UNTRUSTED_RELAY_URL;
+    else process.env.WM_TEST_UNTRUSTED_RELAY_URL = originalUntrustedRelayUrl;
+    await localApi.cleanup();
+    await new Promise((resolve, reject) => {
+      upstream.close((error) => (error ? reject(error) : resolve()));
+    });
+    await new Promise((resolve, reject) => {
+      untrustedUpstream.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+});
+
 test('allows Docker LLM origins and only the configured Ollama origin on desktop', async () => {
   const envSnapshot = {
     LOCAL_API_MODE: process.env.LOCAL_API_MODE,

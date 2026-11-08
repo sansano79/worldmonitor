@@ -30,6 +30,7 @@ const MAX_REGISTRATION_EMAIL_LENGTH = 254;
 const _originalFetch = globalThis.fetch;
 const ALLOW_PRIVATE_NETWORK_FETCH = Symbol('worldmonitor.allowPrivateNetworkFetch');
 const sidecarAllowedPrivateFetchOrigins = new Set();
+const sidecarAllowedPrivateFetchPaths = new Map();
 // The sidecar's own listen origins. A fetch to one of these is a nested call
 // into this same process (MCP registry tools call sibling /api routes this
 // way), not an upstream request, so it must not hold an upstream slot: the
@@ -195,7 +196,7 @@ function makePinnedLookup(address, family = 4) {
   };
 }
 
-function registerSidecarAllowedPrivateFetchOrigins(port, extraOrigins = []) {
+function registerSidecarAllowedPrivateFetchOrigins(port, extraOrigins = [], extraPathRules = []) {
   // Normalize through URL so a default port (80) compares equal to
   // `url.origin`, which omits it: `http://127.0.0.1:80` never matches
   // `new URL('http://127.0.0.1:80/x').origin === 'http://127.0.0.1'`.
@@ -206,9 +207,28 @@ function registerSidecarAllowedPrivateFetchOrigins(port, extraOrigins = []) {
   const origins = [...selfOrigins, ...extraOrigins];
   for (const origin of origins) sidecarAllowedPrivateFetchOrigins.add(origin);
   for (const origin of selfOrigins) sidecarSelfFetchOrigins.add(origin);
+  const registeredPaths = [];
+  for (const { origin, pathnames } of extraPathRules) {
+    let pathCounts = sidecarAllowedPrivateFetchPaths.get(origin);
+    if (!pathCounts) {
+      pathCounts = new Map();
+      sidecarAllowedPrivateFetchPaths.set(origin, pathCounts);
+    }
+    for (const pathname of pathnames) {
+      pathCounts.set(pathname, (pathCounts.get(pathname) || 0) + 1);
+      registeredPaths.push({ origin, pathname });
+    }
+  }
   return () => {
     for (const origin of origins) sidecarAllowedPrivateFetchOrigins.delete(origin);
     for (const origin of selfOrigins) sidecarSelfFetchOrigins.delete(origin);
+    for (const { origin, pathname } of registeredPaths) {
+      const pathCounts = sidecarAllowedPrivateFetchPaths.get(origin);
+      const count = pathCounts?.get(pathname) || 0;
+      if (count <= 1) pathCounts?.delete(pathname);
+      else pathCounts.set(pathname, count - 1);
+      if (pathCounts?.size === 0) sidecarAllowedPrivateFetchPaths.delete(origin);
+    }
   };
 }
 
@@ -223,6 +243,7 @@ function isConfiguredOllamaOrigin(url) {
 
 function isAllowedPrivateSidecarFetch(url) {
   if (sidecarAllowedPrivateFetchOrigins.has(url.origin)) return true;
+  if (sidecarAllowedPrivateFetchPaths.get(url.origin)?.has(url.pathname)) return true;
   // Desktop users can change Ollama settings without restarting the sidecar.
   // Trust only the current configured origin, never an address from a request.
   // An invalid configuration grants no private-network access.
@@ -2308,6 +2329,7 @@ export async function createLocalApiServer(options = {}) {
       const boundPort = typeof address === 'object' && address?.port ? address.port : context.port;
       context.port = boundPort;
       const extraAllowedPrivateOrigins = [];
+      const extraAllowedPrivatePathRules = [];
       if (context.mode === 'docker') {
         const addConfiguredPrivateOrigin = (envKey, blockedService) => {
           const rawUrl = process.env[envKey];
@@ -2336,6 +2358,33 @@ export async function createLocalApiServer(options = {}) {
         for (const envKey of ['LLM_API_URL', 'OLLAMA_API_URL']) {
           addConfiguredPrivateOrigin(envKey, 'LLM calls will be SSRF-blocked');
         }
+
+        // Only the three fixed Telegram endpoints used by the local API may
+        // reach the private relay. Do not trust the whole origin: arbitrary
+        // paths, caller-provided URLs, and redirects must retain SSRF checks.
+        const relayUrl = process.env.WS_RELAY_URL;
+        if (relayUrl) {
+          try {
+            const parsed = new URL(relayUrl);
+            if (parsed.protocol === 'ws:') parsed.protocol = 'http:';
+            else if (parsed.protocol === 'wss:') parsed.protocol = 'https:';
+            if (
+              (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
+              || parsed.search
+              || parsed.hash
+            ) {
+              throw new Error('unsupported relay URL form');
+            }
+            const basePath = parsed.pathname.replace(/\/+$/, '');
+            extraAllowedPrivatePathRules.push({
+              origin: parsed.origin,
+              pathnames: ['/telegram/feed', '/telegram/resolve', '/telegram/channel']
+                .map((pathname) => `${basePath}${pathname}`),
+            });
+          } catch {
+            context.logger.warn('[local-api] WS_RELAY_URL is not a valid HTTP relay URL; Telegram relay calls will be SSRF-blocked');
+          }
+        }
       }
       if (context.allowPrivateRemoteBase) {
         try { extraAllowedPrivateOrigins.push(new URL(context.remoteBase).origin); } catch {}
@@ -2343,7 +2392,11 @@ export async function createLocalApiServer(options = {}) {
       for (const origin of context.allowPrivateFetchOrigins) {
         try { extraAllowedPrivateOrigins.push(new URL(origin).origin); } catch {}
       }
-      unregisterSelfFetchOrigins = registerSidecarAllowedPrivateFetchOrigins(boundPort, extraAllowedPrivateOrigins);
+      unregisterSelfFetchOrigins = registerSidecarAllowedPrivateFetchOrigins(
+        boundPort,
+        extraAllowedPrivateOrigins,
+        extraAllowedPrivatePathRules,
+      );
 
       const portFile = process.env.LOCAL_API_PORT_FILE;
       if (portFile) {

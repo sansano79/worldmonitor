@@ -54,7 +54,7 @@ export default async function ({ page, base, shot, log }) {
   }
   await shot('csm-dashboard-map');
 
-  const absentAuthControls = ['#authWidgetMount', '#mobileAuthWidgetMount', '#mobileAuthFallback', 'a[href*="/pro#pricing"]', '.panel-locked-cta', '.legal-links-row'];
+  const absentAuthControls = ['#authWidgetMount', '#mobileAuthWidgetMount', '#mobileAuthFallback', 'a[href*="/pro#pricing"]', '.panel-locked-cta', '.legal-links-row', '#proBannerSlot', '.export-panel-container', '.pizzint-indicator', '#missionPresetMount', '#missionPresetBtn', '#mobileMenuMission', '.mission-preset-popover'];
   for (const selector of absentAuthControls) {
     if (await page.locator(selector).count()) throw new Error(`unexpected login/PRO UI: ${selector}`);
   }
