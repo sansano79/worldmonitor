@@ -8,7 +8,7 @@ import { renderCrossBorderDetails } from './cross-border-marker';
 import type { RadiationObservation } from '@/services/radiation';
 import { UNDERSEA_CABLES } from '@/config/geo-map';
 import type { StartupHub, Accelerator, TechHQ, CloudRegion } from '@/config/tech-geo';
-import { SEIDOR_OFFICES_SOURCE, type SeidorOffice } from '@/config/seidor-offices';
+import { SEIDOR_OFFICES_SOURCE, seidorCoordinateDescription, type SeidorOffice } from '@/config/seidor-offices';
 import type { TechHubActivity } from '@/services/tech-activity';
 import type { GeoHubActivity } from '@/services/geo-activity';
 import { escapeHtml, sanitizeUrl } from '@/utils/sanitize';
@@ -2660,7 +2660,10 @@ ${isFeatureAvailable('wingbitsEnrichment') ? '<div class="wingbits-live-section"
       <div class="popup-body">
         <div class="popup-subtitle">${escapeHtml(office.city)} · ${escapeHtml(office.countryCode)}</div>
         <p class="popup-description">${escapeHtml(office.address)}</p>
-        <p class="popup-description">Map position is approximate (city centre).</p>
+        <p class="popup-description">${escapeHtml(seidorCoordinateDescription(office.coordinatePrecision))}</p>
+        ${office.coordinateSource.startsWith('https://www.openstreetmap.org/') ? `
+        <p class="popup-description"><a href="${escapeHtml(office.coordinateSource)}" target="_blank" rel="noopener noreferrer">Coordinate reference: OpenStreetMap contributors</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">ODbL</a></p>
+        ` : ''}
         <a href="${SEIDOR_OFFICES_SOURCE}" target="_blank" rel="noopener noreferrer">SEIDOR office directory</a>
       </div>
     `;

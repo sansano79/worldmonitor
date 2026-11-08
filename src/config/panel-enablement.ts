@@ -40,6 +40,7 @@ export interface EvaluateSetPanelEnabledInput {
   panelSettings: Record<string, PanelConfig>;
   variant: string;
   isPro: boolean;
+  fullEdition?: boolean;
   isPanelAllowed?: (panelId: string, config: PanelConfig) => boolean;
 }
 
@@ -145,6 +146,7 @@ export function evaluateSetPanelEnabled(
   if (
     input.enabled
     && !input.isPro
+    && !input.fullEdition
     && isFreePanelCapCounted(panelId)
     && countFreePanelCapUsage(input.panelSettings) >= FREE_MAX_PANELS
   ) {

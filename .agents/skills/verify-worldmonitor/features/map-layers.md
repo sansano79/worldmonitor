@@ -9,7 +9,7 @@ The layer controls under the map decide what a user sees on it — conflicts, ho
 - `layer-persist` stores the set under `worldmonitor-layers`.
 - `layer-explain` opens the per-layer explanation from `.layer-explain-btn[data-layer="…"]`.
 - `layer-svg-cap` disables further layers at 9 active in the SVG renderer (`limit-reached`).
-- `seidor-offices` enables 78 public SEIDOR office locations on the full map. The coordinates represent city centres, and the popup shows the published address and source. Its mobile SVG control remains visible when the other layer controls are hidden. This fixed directory does not consume one of the nine live-layer slots.
+- `seidor-offices` enables 78 public SEIDOR office locations on the full map. Each marker declares whether its point is a city centre, address/range, or mapped building/site; the popup shows the published address, coordinate limits, and source. Its mobile SVG control remains visible when the other layer controls are hidden. This fixed directory does not consume one of the nine live-layer slots.
 - `layer-dimension` switches renderer between 2D and 3D from `#mapDimensionToggle`.
 - `aircraft-emergencies` enables the separate 7500/7600/7700 layer on SVG and DeckGL, opens aircraft details, and checks conflict, missing position, unavailable, expiry, and successful empty states. The globe does not offer this layer.
 

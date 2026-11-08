@@ -7253,6 +7253,9 @@
       "status": "excluded",
       "references": [
         {
+          "path": "src/components/CesiumMap.ts"
+        },
+        {
           "path": "src/config/basemap-styles.ts"
         }
       ]
@@ -9771,6 +9774,21 @@
           "path": "scripts/seed-vpd-tracker.mjs"
         }
       ]
+    },
+    {
+      "host": "tile.openstreetmap.org",
+      "provider": "tile.openstreetmap.org",
+      "kind": "structured",
+      "observed": true,
+      "license": "Excluded from ingested intelligence feeds: public standard raster map tiles. Use only for the visible interactive viewport; honour upstream cache headers and use a seven-day fallback only when absent. No bulk prefetch or offline use. Best-effort without SLA; access may be withdrawn. Map data is under ODbL.",
+      "attribution": "The map displays © OpenStreetMap contributors and links to the OpenStreetMap copyright and license page.",
+      "status": "excluded",
+      "references": [
+        {
+          "path": "src/components/CesiumMap.ts"
+        }
+      ],
+      "role": "transport"
     },
     {
       "host": "tiles.openfreemap.org",

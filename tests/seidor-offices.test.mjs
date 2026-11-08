@@ -22,7 +22,10 @@ test('SEIDOR directory preserves all 78 distinct published offices with usable c
     assert.ok(office.address.length > 0, office.name);
     assert.ok(Number.isFinite(office.lat) && Math.abs(office.lat) <= 90, office.name);
     assert.ok(Number.isFinite(office.lon) && Math.abs(office.lon) <= 180, office.name);
-    assert.equal(office.coordinatePrecision, 'city', office.name);
+    assert.ok(['city', 'address', 'address-range', 'building'].includes(office.coordinatePrecision), office.name);
+    if (office.coordinatePrecision !== 'city') {
+      assert.match(office.coordinateSource, /^https:\/\/www\.openstreetmap\.org\/(node|way)\/\d+$/, office.name);
+    }
   }
 });
 
@@ -48,5 +51,36 @@ test('displaced city-centre markers use the address locality while staying appro
     assert.equal(office.lon, lon, id);
     assert.equal(office.coordinatePrecision, 'city', id);
     assert.equal(office.coordinateSource, 'municipal-centre', id);
+  }
+});
+
+test('street-address pins identify the mapped address or building and preserve the 78-office directory', () => {
+  const expected = {
+    'seidor-barcelona': ['address-range', 41.4074011, 2.2088696],
+    'seidor-valencia': ['building', 39.456598, -0.3459145],
+    'seidor-sevilla': ['building', 37.3740392, -5.9766106],
+    'seidor-bilbao': ['address', 43.2663432, -2.9372677],
+    'seidor-a-coruna': ['address', 43.3811062, -8.409601],
+    'seidor-bologna': ['address', 44.4084067, 11.7931339],
+    'seidor-buenos-aires': ['address', -34.6371529, -58.4064232],
+    'seidor-cartagena': ['building', 37.6188318, -0.9554816],
+    'seidor-dublin': ['address-range', 53.3364932, -6.2626908],
+    'seidor-gotenborg': ['address', 57.6980078, 11.9870197],
+    'seidor-halmstad': ['address', 56.674563, 12.8662114],
+    'seidor-houston': ['building', 30.1720364, -95.4703018],
+    'seidor-las-palmas': ['building', 28.1175013, -15.4235889],
+    'seidor-london': ['building', 51.3720199, -0.4555732],
+    'seidor-lusaka': ['building', -15.3883163, 28.3161976],
+    'seidor-santiago-de-chile': ['building', -33.4164719, -70.5924725],
+  };
+
+  assert.equal(Object.keys(expected).length, 16);
+  for (const [id, [precision, lat, lon]] of Object.entries(expected)) {
+    const office = offices.find(candidate => candidate.id === id);
+    assert.ok(office, id);
+    assert.equal(office.coordinatePrecision, precision, id);
+    assert.equal(office.lat, lat, id);
+    assert.equal(office.lon, lon, id);
+    assert.match(office.coordinateSource, /^https:\/\/www\.openstreetmap\.org\/(node|way)\/\d+$/, id);
   }
 });

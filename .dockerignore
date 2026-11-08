@@ -1,5 +1,8 @@
 node_modules
 dist
+public/cesium
+!vendor/vercel-og/dist/
+!vendor/vercel-og/dist/**
 .git
 .github/*
 !.github/workflows/

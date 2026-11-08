@@ -1,5 +1,6 @@
 import { WEBMCP_UI_READY_TIMEOUT_MS } from '@/app/webmcp-dashboard';
 import { FREE_MAX_PANELS } from '@/config/panels';
+import { isCsmMode } from '@/config/csm-mode';
 import { getAuthState } from '@/services/auth-state';
 import {
   initClerk,
@@ -45,12 +46,13 @@ export function getWebMcpAccessContext(options: {
     clerkReady: isClerkReady(),
     premiumAccess: hasPremiumAccess(auth),
     entitlement: getEntitlementState(),
-    tabCap: evaluateTabCap(auth, options.dashboardTabCount),
+    tabCap: evaluateTabCap(auth, options.dashboardTabCount, isCsmMode()),
     enabledPanelUsed: options.enabledPanelUsed,
     dashboardTabCount: options.dashboardTabCount,
     freePanelCap: FREE_MAX_PANELS,
+    fullEdition: isCsmMode(),
     freeTierFallbackActive: options.freeTierFallbackActive === true,
-    dataExport: evaluateExportGate(auth).locked === false,
+    dataExport: evaluateExportGate(auth, isCsmMode()).locked === false,
   });
 }
 

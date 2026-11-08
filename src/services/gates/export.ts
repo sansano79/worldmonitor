@@ -75,12 +75,14 @@ function readExportGateInputs(authState: AuthSession): ExportGateInputs {
 }
 
 /** Current data-export verdict for the given auth session. */
-export function evaluateExportGate(authState: AuthSession): ExportGateVerdict {
+export function evaluateExportGate(authState: AuthSession, fullEdition = false): ExportGateVerdict {
+  if (fullEdition) return { locked: false, pendingActivation: false };
   return resolveExportGate(readExportGateInputs(authState));
 }
 
 /** Formats the unlocked export menu may expose for this live session. */
-export function evaluateAvailableExportFormats(authState: AuthSession): DataExportFormat[] {
+export function evaluateAvailableExportFormats(authState: AuthSession, fullEdition = false): DataExportFormat[] {
+  if (fullEdition) return ['csv', 'json', 'pdf'];
   return resolveAvailableExportFormats(readExportGateInputs(authState));
 }
 
@@ -88,6 +90,7 @@ export function evaluateAvailableExportFormats(authState: AuthSession): DataExpo
  * May this session create another dashboard tab? Creation-only — the verdict
  * never asks a caller to remove tabs that already exist (KTD8).
  */
-export function evaluateTabCap(authState: AuthSession, currentTabCount: number): TabCapVerdict {
+export function evaluateTabCap(authState: AuthSession, currentTabCount: number, fullEdition = false): TabCapVerdict {
+  if (fullEdition) return { allowed: true, cap: null, pendingActivation: false };
   return resolveTabCap(readExportGateInputs(authState), currentTabCount);
 }

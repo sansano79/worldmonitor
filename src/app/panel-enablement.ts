@@ -17,6 +17,7 @@ export interface SetPanelEnabledContext {
 export interface SetPanelEnabledDeps {
   variant: string;
   isPro: boolean;
+  fullEdition?: boolean;
   persist: (settings: Record<string, PanelConfig>) => boolean | void;
   applyPanelSettings: () => void;
   trackToggle: (panelId: string, enabled: boolean) => void;
@@ -42,6 +43,7 @@ export function applySetPanelEnabled(
     panelSettings: ctx.panelSettings,
     variant: deps.variant,
     isPro: deps.isPro,
+    fullEdition: deps.fullEdition,
     isPanelAllowed: deps.isPanelAllowed,
   });
 

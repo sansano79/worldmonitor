@@ -16,6 +16,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_CSM_MODE: "${VITE_CSM_MODE:-false}"
     image: worldmonitor:latest
     container_name: worldmonitor
     ports:

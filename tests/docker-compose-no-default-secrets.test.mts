@@ -37,6 +37,7 @@ function serviceBlock(compose: string, serviceName: string): string {
 }
 
 interface ComposeService {
+  build?: { args?: Record<string, unknown> };
   environment?: Record<string, unknown>;
 }
 
@@ -123,6 +124,16 @@ describe('docker self-hosting — no default credentials (#3804)', () => {
     ].join('\r\n');
 
     assert.match(serviceBlock(compose, 'ais-relay'), /AISSTREAM_API_KEY: optional/);
+  });
+
+  it('passes the fork mode from Compose through to the Docker image build', async () => {
+    const compose = parse(await read('docker-compose.yml')) as ComposeConfig;
+    assert.equal(
+      compose.services?.worldmonitor?.build?.args?.VITE_CSM_MODE,
+      '${VITE_CSM_MODE:-false}',
+    );
+    assert.match(await read('Dockerfile'), /^ARG VITE_CSM_MODE=false$/m);
+    assert.match(await read('.env.example'), /^VITE_CSM_MODE=true$/m);
   });
 
   it('docker-compose.yml does not default REDIS_TOKEN or UPSTASH_REDIS_REST_TOKEN to a literal', async () => {

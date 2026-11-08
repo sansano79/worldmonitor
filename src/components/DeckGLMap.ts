@@ -117,7 +117,7 @@ import {
 // off the eager @/config barrel and load only with this lazy renderer (#4404).
 import { STARTUP_HUBS, ACCELERATORS, TECH_HQS, CLOUD_REGIONS } from '@/config/tech-geo';
 import { AI_DATA_CENTERS } from '@/config/ai-datacenters';
-import { SEIDOR_OFFICES } from '@/config/seidor-offices';
+import { SEIDOR_OFFICES, seidorCoordinateDescription } from '@/config/seidor-offices';
 import { UNDERSEA_CABLES, NUCLEAR_FACILITIES, ECONOMIC_CENTERS, SPACEPORTS, CRITICAL_MINERALS, SANCTIONED_COUNTRIES_ALPHA2 } from '@/config/geo-map';
 import type { GulfInvestment } from '@/types';
 import { resolveTradeRouteSegments, TRADE_ROUTES as TRADE_ROUTES_LIST, type TradeRouteSegment, type TradeRouteStatus } from '@/config/trade-routes';
@@ -5292,7 +5292,7 @@ export class DeckGLMap {
       case 'economic-centers-layer':
         return { html: `<div class="deckgl-tooltip"><strong>${text(obj.name)}</strong><br/>${text(obj.country)}</div>` };
       case 'seidor-offices-layer':
-        return { html: `<div class="deckgl-tooltip"><strong>SEIDOR ${text(obj.name)}</strong><br/>${text(obj.address)}<br/><small>Approximate city location</small></div>` };
+        return { html: `<div class="deckgl-tooltip"><strong>SEIDOR ${text(obj.name)}</strong><br/>${text(obj.address)}<br/><small>${text(seidorCoordinateDescription(obj.coordinatePrecision))}</small></div>` };
       case 'stock-exchanges-layer':
         return { html: `<div class="deckgl-tooltip"><strong>${text(obj.shortName)}</strong><br/>${text(obj.city)}, ${text(obj.country)}</div>` };
       case 'financial-centers-layer':

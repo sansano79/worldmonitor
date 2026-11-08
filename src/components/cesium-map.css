@@ -1,0 +1,101 @@
+.cesium-csm-mode .cesium-viewer,
+.cesium-csm-mode .cesium-viewer-cesiumWidgetContainer,
+.cesium-csm-mode .cesium-widget,
+.cesium-csm-mode .cesium-widget canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.cesium-csm-mode .cesium-viewer-bottom {
+  left: auto;
+  right: 8px;
+  bottom: 4px;
+  max-width: calc(100% - 16px);
+}
+
+.cesium-csm-layer-control {
+  position: absolute;
+  z-index: 20;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  gap: 5px;
+  max-height: min(55vh, 420px);
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid rgb(148 163 184 / 24%);
+  border-radius: 8px;
+  color: #e5edf7;
+  background: rgb(8 18 31 / 88%);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 24%);
+  backdrop-filter: blur(10px);
+  font: 11px/1.25 system-ui, sans-serif;
+}
+
+.cesium-csm-basemap-status {
+  position: absolute;
+  z-index: 19;
+  left: 12px;
+  bottom: 12px;
+  max-width: min(420px, calc(100% - 24px));
+  padding: 7px 10px;
+  border: 1px solid rgb(251 191 36 / 45%);
+  border-radius: 7px;
+  color: #fde68a;
+  background: rgb(35 27 12 / 92%);
+  font: 11px/1.35 system-ui, sans-serif;
+}
+
+.cesium-csm-layer-row {
+  display: flex;
+  min-height: 22px;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cesium-csm-layer-row input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: #60a5fa;
+}
+
+.cesium-csm-layer-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; }
+
+.cesium-csm-feature-popup {
+  position: absolute;
+  z-index: 30;
+  display: grid;
+  max-width: 290px;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid rgb(148 163 184 / 28%);
+  border-radius: 8px;
+  color: #e5edf7;
+  background: rgb(8 18 31 / 94%);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 30%);
+  font: 11px/1.4 system-ui, sans-serif;
+}
+
+.cesium-csm-feature-popup strong { color: #fff; }
+.cesium-csm-feature-popup a { color: #7dbbff; }
+
+@media (max-width: 600px) {
+  .cesium-csm-layer-control {
+    top: 8px;
+    right: 8px;
+    gap: 3px;
+    max-height: 42vh;
+    padding: 7px 9px;
+    font-size: 10px;
+  }
+  .cesium-csm-basemap-status {
+    left: 8px;
+    bottom: 8px;
+    max-width: calc(100% - 16px);
+    font-size: 10px;
+  }
+  .cesium-csm-layer-row { min-height: 20px; }
+}

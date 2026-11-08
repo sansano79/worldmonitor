@@ -36,6 +36,7 @@ function readPlaybackGateInputs(authState: AuthSession): PlaybackGateInputs {
 }
 
 /** Current playback-control verdict for the given auth session. */
-export function evaluatePlaybackGate(authState: AuthSession): PlaybackGateVerdict {
+export function evaluatePlaybackGate(authState: AuthSession, fullEdition = false): PlaybackGateVerdict {
+  if (fullEdition) return 'visible';
   return resolvePlaybackGate(readPlaybackGateInputs(authState));
 }

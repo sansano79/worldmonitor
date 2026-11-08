@@ -25,6 +25,8 @@ export interface WebMcpAccessContextInput {
   enabledPanelUsed: number;
   dashboardTabCount: number;
   freePanelCap: number;
+  /** Full CSM edition bypasses local product caps without granting API entitlements. */
+  fullEdition?: boolean;
   /** True after FreeTierGate's AUTH_SETTLE_GRACE_MS backstop has fired. */
   freeTierFallbackActive: boolean;
   dataExport: boolean;
@@ -86,8 +88,8 @@ export function buildWebMcpAccessContext(
   // Convex snapshot never arrives. Tab caps stay deferred: evaluateTabCap
   // remains uncapped while features are still null.
   const deferPanelCap = deferLimits && !input.freeTierFallbackActive;
-  const panelCap = deferPanelCap || input.premiumAccess ? null : input.freePanelCap;
-  const tabCap = deferLimits ? null : input.tabCap.cap;
+  const panelCap = input.fullEdition || deferPanelCap || input.premiumAccess ? null : input.freePanelCap;
+  const tabCap = input.fullEdition || deferLimits ? null : input.tabCap.cap;
 
   return {
     accountState,
@@ -107,7 +109,7 @@ export function buildWebMcpAccessContext(
       dashboardTabs: {
         used: nonNegativeCount(input.dashboardTabCount),
         cap: tabCap,
-        canCreate: deferLimits || input.tabCap.allowed,
+        canCreate: input.fullEdition || deferLimits || input.tabCap.allowed,
       },
     },
   };

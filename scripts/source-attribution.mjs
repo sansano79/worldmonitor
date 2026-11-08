@@ -188,6 +188,14 @@ export const PROVIDER_IDENTITY_GROUPS = Object.freeze({
 });
 
 const PROVIDER_OVERRIDES = {
+  // Used only to draw the interactive map. It is not an ingested source or an
+  // intelligence provider and must stay out of the source country catalog.
+  'tile.openstreetmap.org': {
+    role: 'transport',
+    license: 'Excluded from ingested intelligence feeds: public standard raster map tiles. Use only for the visible interactive viewport; honour upstream cache headers and use a seven-day fallback only when absent. No bulk prefetch or offline use. Best-effort without SLA; access may be withdrawn. Map data is under ODbL.',
+    attribution: 'The map displays © OpenStreetMap contributors and links to the OpenStreetMap copyright and license page.',
+    status: 'excluded',
+  },
   'www.jodidata.org': { provider: 'www.jodidata.org', identityGroup: 'jodi' },
   'api.publisher.jodidata.org': { provider: 'www.jodidata.org', identityGroup: 'jodi' },
   'api.adsb.lol': { provider: 'adsb.lol' },

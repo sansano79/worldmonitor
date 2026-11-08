@@ -40,7 +40,7 @@ import { getAuthState } from '@/services/auth-state';
 import { resolveTradeRouteSegments, type TradeRouteSegment } from '@/config/trade-routes';
 import { GAMMA_IRRADIATORS } from '@/config/irradiators';
 import { AI_DATA_CENTERS } from '@/config/ai-datacenters';
-import { SEIDOR_OFFICES, type SeidorOffice } from '@/config/seidor-offices';
+import { SEIDOR_OFFICES, seidorCoordinateDescription, type SeidorOffice } from '@/config/seidor-offices';
 import { getCountryBbox, getCountriesGeoJson, getCountryAtCoordinates, getCountryNameByCode } from '@/services/country-geometry';
 import { escapeHtml } from '@/utils/sanitize';
 import { corroborationLabelHtml } from '@/utils/corroboration-flag';
@@ -1304,7 +1304,7 @@ export class GlobeMap {
       el.title = `${d.name} · ${d.country}`;
     } else if (d._kind === 'seidorOffice') {
       setTrustedHtml(el, trustedHtml(GlobeMap.wrapHit('<div style="font-size:11px;color:#3085ff;text-shadow:0 0 4px #3085ff88;">🏢</div>'), "legacy direct innerHTML migration"));
-      el.title = `SEIDOR ${d.office.name} · approximate city location`;
+      el.title = `SEIDOR ${d.office.name} · ${seidorCoordinateDescription(d.office.coordinatePrecision)}`;
     } else if (d._kind === 'datacenter') {
       setTrustedHtml(el, trustedHtml(GlobeMap.wrapHit(`<div style="font-size:calc(10px * var(--wm-panel-effective-scale, 1));color:#88aaff;text-shadow:0 0 3px #88aaff88;">🖥</div>`), "legacy direct innerHTML migration"));
       el.title = `${d.name} (${d.owner})`;
@@ -1686,7 +1686,7 @@ export class GlobeMap {
     } else if (d._kind === 'seidorOffice') {
       html = `<span style="color:#3085ff;font-weight:bold;">🏢 SEIDOR ${esc(d.office.name)}</span>` +
              `<br><span style="opacity:.7;white-space:normal;display:block;">${esc(d.office.address)}</span>` +
-             '<br><span style="opacity:.5;">Approximate city location</span>';
+             `<br><span style="opacity:.5;">${esc(seidorCoordinateDescription(d.office.coordinatePrecision))}</span>`;
     } else if (d._kind === 'datacenter') {
       html = `<span style="color:#88aaff;font-weight:bold;">🖥 ${esc(d.name)}</span>` +
              `<br><span style="opacity:.7;">${esc(d.owner)} · ${esc(d.country)}</span>` +

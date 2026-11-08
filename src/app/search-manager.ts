@@ -6,6 +6,7 @@ import {
 } from '@/components/search-types';
 import type { NewsItem, MapLayers, MilitaryBase, MilitaryFlight } from '@/types';
 import type { Command } from '@/config/commands';
+import { isCsmMode } from '@/config/csm-mode';
 import { SearchModal } from '@/components/SearchModal';
 import type { CIIPanel } from '@/components/CIIPanel';
 import {
@@ -696,6 +697,7 @@ export class SearchManager implements AppModule {
         if (config.enabled) {
           return allowPendingPanelTarget || this.hasLivePanelTarget(panelId);
         }
+        if (isCsmMode()) return true;
         if (premium) return true;
         return !isFreePanelCapCounted(panelId)
           || countFreePanelCapUsage(this.ctx.panelSettings) < FREE_MAX_PANELS;

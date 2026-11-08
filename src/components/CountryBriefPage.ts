@@ -18,6 +18,7 @@ import { ME_STRIKE_BOUNDS } from '@/services/country-geometry';
 import { toFlagEmoji } from '@/utils/country-flag';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 import { getAuthState } from '@/services/auth-state';
+import { isCsmMode } from '@/config/csm-mode';
 import { hasPremiumAccess } from '@/services/panel-gating';
 import {
   evaluateAvailableExportFormats,
@@ -777,12 +778,12 @@ export class CountryBriefPage implements CountryBriefPanel {
    */
   private syncStructuredExportOptions(): void {
     const authState = getAuthState();
-    const verdict = evaluateExportGate(authState);
+    const verdict = evaluateExportGate(authState, isCsmMode());
     // Keep the locked rows visible so they remain an entry point to the
     // billing-aware gate. Once unlocked, the catalog is the format allowlist.
     const availableFormats = verdict.locked
       ? null
-      : new Set(evaluateAvailableExportFormats(authState));
+      : new Set(evaluateAvailableExportFormats(authState, isCsmMode()));
 
     this.overlay
       .querySelectorAll<HTMLButtonElement>('.cb-export-option')
@@ -795,12 +796,12 @@ export class CountryBriefPage implements CountryBriefPanel {
 
   private canExportStructuredData(format: 'json' | 'csv'): boolean {
     const authState = getAuthState();
-    const verdict = evaluateExportGate(authState);
+    const verdict = evaluateExportGate(authState, isCsmMode());
     if (!verdict.locked) {
       if (verdict.pendingActivation) void primeExportGateActivation();
       // Re-evaluate at click time so a stale/open menu cannot bypass a live
       // entitlement change.
-      return evaluateAvailableExportFormats(authState).includes(format);
+      return evaluateAvailableExportFormats(authState, isCsmMode()).includes(format);
     }
     trackGateHit('export');
     showToast(exportGateCopy(exportLockToGateReason(verdict.reason)).desc);
@@ -808,7 +809,7 @@ export class CountryBriefPage implements CountryBriefPanel {
   }
 
   private canExportEvidenceBundle(): boolean {
-    if (hasPremiumAccess(getAuthState())) return true;
+    if (isCsmMode() || hasPremiumAccess(getAuthState())) return true;
     trackGateHit('evidence-export');
     showToast('Evidence export is available on Pro.');
     return false;

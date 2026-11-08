@@ -8,7 +8,9 @@
 # =============================================================================
 
 # ── Stage 1: Builder ─────────────────────────────────────────────────────────
-FROM node:24-alpine@sha256:feb76650b7195319268c59cb2d419c732d6c499b13bf5296f16ab59eb1f0a4f3 AS builder
+# Keep Node/esbuild on the builder's native architecture for reliable
+# cross-platform builds; the generated JS and static assets are portable.
+FROM --platform=$BUILDPLATFORM node:24-alpine@sha256:feb76650b7195319268c59cb2d419c732d6c499b13bf5296f16ab59eb1f0a4f3 AS builder
 
 WORKDIR /app
 ENV npm_config_install_links=true
@@ -46,7 +48,8 @@ RUN if [ "$VITE_CSM_MODE" != "true" ]; then npm run build:pro; fi
 
 # Build the Vite frontend (outputs to dist/)
 # Skip blog build — blog-site has its own deps not installed here
-RUN VITE_CSM_MODE="$VITE_CSM_MODE" npx tsc && VITE_CSM_MODE="$VITE_CSM_MODE" npx vite build
+RUN if [ "$VITE_CSM_MODE" = "true" ]; then node scripts/prepare-cesium-assets.mjs; fi && \
+    VITE_CSM_MODE="$VITE_CSM_MODE" npx tsc && VITE_CSM_MODE="$VITE_CSM_MODE" npx vite build
 # Assert the /pro pages survived the public/ -> dist/ copy for general images.
 RUN if [ "$VITE_CSM_MODE" != "true" ]; then test -s dist/pro/index.html && test -s dist/pro/welcome.html; fi
 
@@ -69,7 +72,7 @@ FROM node:24-alpine@sha256:feb76650b7195319268c59cb2d419c732d6c499b13bf5296f16ab
 
 # nginx + supervisord
 RUN apk add --no-cache nginx supervisor gettext && \
-    mkdir -p /tmp/nginx-client-body /tmp/nginx-proxy /tmp/nginx-fastcgi \
+    mkdir -p /tmp/nginx-client-body /tmp/nginx-proxy/osm-cache /tmp/nginx-fastcgi \
              /tmp/nginx-uwsgi /tmp/nginx-scgi /var/log/supervisor && \
     addgroup -S appgroup && adduser -S appuser -G appgroup
 

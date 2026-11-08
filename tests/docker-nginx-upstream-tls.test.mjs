@@ -11,6 +11,22 @@ import { createTempDir, removeTempDir } from './helpers/temp-dir.mjs';
 const root = resolve(import.meta.dirname, '..');
 const routes = ['/api/data', '/api/oauth/authorize', '/api/oauth/authorize-pro', '/api/youtube/embed'];
 
+test('CSM OpenStreetMap tile proxy identifies the app and honours tile-use limits', () => {
+  const nginx = readFileSync(join(root, 'docker/nginx.conf'), 'utf8');
+  const block = nginx.match(/location ~ "\^\/tiles\/osm\/[^\n]+\n([\s\S]*?)\n    }/)?.[1];
+  assert.ok(block, 'docker/nginx.conf must expose only the numeric OSM tile route');
+  assert.match(block, /proxy_pass https:\/\/tile\.openstreetmap\.org;/);
+  assert.match(block, /proxy_set_header User-Agent "WorldMonitor CSM";/);
+  assert.match(block, /proxy_set_header Referer \$http_referer;/);
+  assert.match(block, /proxy_set_header Cache-Control "";/);
+  assert.match(block, /proxy_set_header Pragma "";/);
+  assert.match(block, /proxy_cache_revalidate on;/);
+  assert.match(block, /proxy_cache_valid 200 7d;/);
+  assert.match(block, /limit_req zone=osm_tiles_per_ip/);
+  assert.match(block, /access_log off;/);
+  assert.doesNotMatch(block, /proxy_cache_use_stale/);
+});
+
 test('frontend nginx rejects untrusted and wrong-host TLS upstreams before forwarding credentials', {
   skip: !process.env.WM_TEST_NGINX,
   timeout: 30_000,

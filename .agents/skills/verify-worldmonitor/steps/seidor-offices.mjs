@@ -51,22 +51,15 @@ export default async function ({ page, base, shot, log }) {
       return Math.max(...xs) - Math.min(...xs);
     });
     if (horizontalSpan < 200) throw new Error(`SEIDOR markers did not spread across the map: ${horizontalSpan}px`);
-    // A narrow viewport clips much of the SVG world map. Pick a marker whose
-    // centre is inside the visible map instead of targeting an offscreen city.
-    const visibleLabel = await page.locator('.seidor-office-marker').evaluateAll(markers => {
-      const candidates = markers.map(marker => ({
-        marker,
-        label: marker.getAttribute('aria-label'),
-        rect: marker.getBoundingClientRect(),
-      })).filter(({ rect, marker }) => rect.x >= 12 && rect.right <= innerWidth - 12
-        && rect.y >= 105 && rect.bottom <= innerHeight - 95
-        && document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2) === marker);
-      return candidates[0]?.label ?? null;
-    });
-    if (!visibleLabel) throw new Error('No SEIDOR marker is visible inside the mobile map');
-    log('visible marker:', visibleLabel);
-    await page.locator(`.seidor-office-marker[aria-label="${visibleLabel}"]`).click({ timeout: 3000 });
-    await page.locator('.map-popup').getByText('Map position is approximate (city centre).').waitFor();
+    const marker = page.locator('.seidor-office-marker[aria-label="SEIDOR Houston"]');
+    await marker.waitFor({ state: 'visible' });
+    // The map exposes overlapping office buttons; dispatch the selected button
+    // directly so the test reads this office's precision, not the top marker.
+    await marker.evaluate(element => element.click());
+    const popup = page.locator('.map-popup');
+    await popup.getByText(/mapped building or site/).waitFor();
+    await popup.getByRole('link', { name: /Coordinate reference: OpenStreetMap contributors/ }).waitFor();
+    log('office marker: Houston, building precision and OSM reference shown');
     if (process.env.WM_VERIFY_MOBILE === '1') {
       await page.locator('.map-popup-sheet.open').waitFor();
       await page.waitForFunction(() => {

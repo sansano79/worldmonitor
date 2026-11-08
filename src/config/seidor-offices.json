@@ -6,10 +6,10 @@
     "countryCode": "ES",
     "address": "C/Provençals, 44, 08019 Barcelona, Spain",
     "phone": "+34 933 043 222",
-    "lat": 41.3851,
-    "lon": 2.1734,
-    "coordinatePrecision": "city",
-    "coordinateSource": "city-coords"
+    "lat": 41.4074011,
+    "lon": 2.2088696,
+    "coordinatePrecision": "address-range",
+    "coordinateSource": "https://www.openstreetmap.org/node/11451833852"
   },
   {
     "id": "seidor-madrid",
@@ -30,10 +30,10 @@
     "countryCode": "ES",
     "address": "C/Menorca, 19 - Edificio Aqua, planta 5, 46023 Valencia, Spain",
     "phone": "+34 911 274 100",
-    "lat": 39.4699,
-    "lon": -0.3763,
-    "coordinatePrecision": "city",
-    "coordinateSource": "city-coords"
+    "lat": 39.456598,
+    "lon": -0.3459145,
+    "coordinatePrecision": "building",
+    "coordinateSource": "https://www.openstreetmap.org/way/1270179785"
   },
   {
     "id": "seidor-sevilla",
@@ -42,10 +42,10 @@
     "countryCode": "ES",
     "address": "Av. de Diego Martínez Barrio, 10 - Edificio Insur, Planta 8, 41013 Sevilla, Spain",
     "phone": "+34 911 274 100",
-    "lat": 37.3891,
-    "lon": -5.9845,
-    "coordinatePrecision": "city",
-    "coordinateSource": "city-coords"
+    "lat": 37.3740392,
+    "lon": -5.9766106,
+    "coordinatePrecision": "building",
+    "coordinateSource": "https://www.openstreetmap.org/way/118904522"
   },
   {
     "id": "seidor-bilbao",
@@ -54,10 +54,10 @@
     "countryCode": "ES",
     "address": "Museo Plaza, 1, 3ª Planta, 48009 Bilbao, Spain",
     "phone": "+34 911 274 100",
-    "lat": 43.263,
-    "lon": -2.935,
-    "coordinatePrecision": "city",
-    "coordinateSource": "city-coords"
+    "lat": 43.2663432,
+    "lon": -2.9372677,
+    "coordinatePrecision": "address",
+    "coordinateSource": "https://www.openstreetmap.org/node/5056382903"
   },
   {
     "id": "seidor-a-coruna",
@@ -66,10 +66,10 @@
     "countryCode": "ES",
     "address": "Paseo Alcalde Francisco Vazquez 59, bajo 18, 15002 La Coruña, Spain",
     "phone": "+34 911 274 100",
-    "lat": 43.37,
-    "lon": -8.4,
-    "coordinatePrecision": "city",
-    "coordinateSource": "outbreak-places"
+    "lat": 43.3811062,
+    "lon": -8.409601,
+    "coordinatePrecision": "address",
+    "coordinateSource": "https://www.openstreetmap.org/node/2285922980"
   },
   {
     "id": "seidor-almeria",
@@ -162,10 +162,10 @@
     "countryCode": "IT",
     "address": "1903 Via San Francesco, Campus Tecnologico Mordano, 40027, Bologna",
     "phone": "(+39) 054 2890000",
-    "lat": 44.397,
-    "lon": 11.81,
-    "coordinatePrecision": "city",
-    "coordinateSource": "municipal-centre"
+    "lat": 44.4084067,
+    "lon": 11.7931339,
+    "coordinatePrecision": "address",
+    "coordinateSource": "https://www.openstreetmap.org/node/4778263662"
   },
   {
     "id": "seidor-brussels",
@@ -186,10 +186,10 @@
     "countryCode": "AR",
     "address": "Av. Caseros 3039, 5to Piso, Tomo II, Ciudad Autónoma de Buenos Aires, CP 1264, Argentina",
     "phone": "+54 (011) 5533-3100",
-    "lat": -34.6037,
-    "lon": -58.3816,
-    "coordinatePrecision": "city",
-    "coordinateSource": "city-coords"
+    "lat": -34.6371529,
+    "lon": -58.4064232,
+    "coordinatePrecision": "address",
+    "coordinateSource": "https://www.openstreetmap.org/way/421697180"
   },
   {
     "id": "seidor-cairo",
@@ -222,10 +222,10 @@
     "countryCode": "ES",
     "address": "C/ Belgrado 14, 2 Planta, oficina C Edificio Torre Beaza,, 30204 Cartagena, Spain",
     "phone": "+34 911 274 100",
-    "lat": 37.6,
-    "lon": -0.98,
-    "coordinatePrecision": "city",
-    "coordinateSource": "outbreak-places"
+    "lat": 37.6188318,
+    "lon": -0.9554816,
+    "coordinatePrecision": "building",
+    "coordinateSource": "https://www.openstreetmap.org/way/260523844"
   },
   {
     "id": "seidor-casablanca",
@@ -318,10 +318,10 @@
     "countryCode": "IE",
     "address": "88 Harcourt St, Saint Kevin's, Dublin, Ireland",
     "phone": "+353 01 697 1818",
-    "lat": 53.3498,
-    "lon": -6.2603,
-    "coordinatePrecision": "city",
-    "coordinateSource": "city-coords"
+    "lat": 53.3364932,
+    "lon": -6.2626908,
+    "coordinatePrecision": "address-range",
+    "coordinateSource": "https://www.openstreetmap.org/way/280957889"
   },
   {
     "id": "seidor-el-salvador",
@@ -366,10 +366,10 @@
     "countryCode": "SE",
     "address": "Mässans gata 10,, 412 51 Götenborg, Sweden",
     "phone": "+46 771 54 55 56",
-    "lat": 57.7089,
-    "lon": 11.9746,
-    "coordinatePrecision": "city",
-    "coordinateSource": "city-coords"
+    "lat": 57.6980078,
+    "lon": 11.9870197,
+    "coordinatePrecision": "address",
+    "coordinateSource": "https://www.openstreetmap.org/node/3102961089"
   },
   {
     "id": "seidor-granada",
@@ -390,10 +390,10 @@
     "countryCode": "SE",
     "address": "Gamletullsgatan 12,, 302 27 Halmstad",
     "phone": "+46 771 54 55 56",
-    "lat": 56.67446,
-    "lon": 12.85676,
-    "coordinatePrecision": "city",
-    "coordinateSource": "municipal-centre"
+    "lat": 56.674563,
+    "lon": 12.8662114,
+    "coordinatePrecision": "address",
+    "coordinateSource": "https://www.openstreetmap.org/node/1072629675"
   },
   {
     "id": "seidor-heredia",
@@ -414,10 +414,10 @@
     "countryCode": "US",
     "address": "1800 Hughes Landing, Suite 175,, The Woodlands, TX 77380",
     "phone": "+1 832-843-7544",
-    "lat": 30.1658,
-    "lon": -95.4613,
-    "coordinatePrecision": "city",
-    "coordinateSource": "municipal-centre"
+    "lat": 30.1720364,
+    "lon": -95.4703018,
+    "coordinatePrecision": "building",
+    "coordinateSource": "https://www.openstreetmap.org/way/435069011"
   },
   {
     "id": "seidor-johannesburg",
@@ -462,10 +462,10 @@
     "countryCode": "ES",
     "address": "C/ León y Castillo 177, 4ª planta, 35004 Las Palmas de Gran Canaria, Las Palmas, Spain",
     "phone": "+34 911 274 100",
-    "lat": 28.1,
-    "lon": -15.42,
-    "coordinatePrecision": "city",
-    "coordinateSource": "outbreak-places"
+    "lat": 28.1175013,
+    "lon": -15.4235889,
+    "coordinatePrecision": "building",
+    "coordinateSource": "https://www.openstreetmap.org/way/440493583"
   },
   {
     "id": "seidor-leon",
@@ -498,10 +498,10 @@
     "countryCode": "GB",
     "address": "Egerton House, 68 Baker Street, Weybridge, Surrey,, England, KT13 8A",
     "phone": "+44(0)1932 212 777",
-    "lat": 51.372,
-    "lon": -0.457,
-    "coordinatePrecision": "city",
-    "coordinateSource": "municipal-centre"
+    "lat": 51.3720199,
+    "lon": -0.4555732,
+    "coordinatePrecision": "building",
+    "coordinateSource": "https://www.openstreetmap.org/way/149782007"
   },
   {
     "id": "seidor-lusaka",
@@ -510,10 +510,10 @@
     "countryCode": "ZM",
     "address": "SunShare Tower,, Lubansenshi Road, Lusaka, Zambia",
     "phone": "+260 211 268 571",
-    "lat": -15.41,
-    "lon": 28.29,
-    "coordinatePrecision": "city",
-    "coordinateSource": "outbreak-places"
+    "lat": -15.3883163,
+    "lon": 28.3161976,
+    "coordinatePrecision": "building",
+    "coordinateSource": "https://www.openstreetmap.org/way/1061973711"
   },
   {
     "id": "seidor-malaga",
@@ -798,10 +798,10 @@
     "countryCode": "CL",
     "address": "Hendaya 60, piso 12, Las Condes, Santiago de Chile., Región Metropolitana, Chile",
     "phone": "+56 2 65 64 100",
-    "lat": -33.4489,
-    "lon": -70.6693,
-    "coordinatePrecision": "city",
-    "coordinateSource": "city-coords"
+    "lat": -33.4164719,
+    "lon": -70.5924725,
+    "coordinatePrecision": "building",
+    "coordinateSource": "https://www.openstreetmap.org/way/155050823"
   },
   {
     "id": "seidor-santo-domingo",

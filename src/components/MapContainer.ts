@@ -5,6 +5,7 @@
  * Supports an optional 3D globe mode (globe.gl) selectable from Settings.
  */
 import { isMobileDevice } from '@/utils';
+import { isCsmMode } from '@/config/csm-mode';
 import type { UkmtoMapIncident } from '../../shared/ukmto-incidents';
 import type { ListUkmtoIncidentsResponse } from '@/generated/client/worldmonitor/maritime/v1/service_client';
 import './ukmto-incidents.css';
@@ -180,6 +181,7 @@ export class MapContainer {
   private deckGLMap: DeckGLMap | null = null;
   private svgMap: MapComponent | null = null;
   private globeMap: GlobeMap | null = null;
+  private csmCesiumMap: import('./CesiumMap').CesiumMap | null = null;
   private supplyChainPanel: import('@/components/SupplyChainPanel').SupplyChainPanel | null = null;
   private initialState: MapContainerState;
   private useDeckGL: boolean;
@@ -417,7 +419,7 @@ export class MapContainer {
   }
 
   private hasActiveRenderer(): boolean {
-    return Boolean(this.globeMap || this.deckGLMap || this.svgMap);
+    return Boolean(this.globeMap || this.csmCesiumMap || this.deckGLMap || this.svgMap);
   }
 
   private isChokepointRendererReady(): boolean {
@@ -639,7 +641,19 @@ export class MapContainer {
   private async createGlobeMap(rendererToken: number): Promise<void> {
     const globeToken = ++this.globeInitToken;
     try {
-      markLcpDebug('wm:map:globe-init-start');
+      markLcpDebug(isCsmMode() ? 'wm:map:cesium-init-start' : 'wm:map:globe-init-start');
+      if (import.meta.env.VITE_CSM_MODE === 'true') {
+        const { CesiumMap } = await import('./CesiumMap');
+        if (!this.isCurrentRendererInit(rendererToken)) return;
+        this.prepareRendererDom('globe-mode');
+        this.csmCesiumMap = await CesiumMap.create(this.container, this.initialState);
+        this.rehydrateActiveMap();
+        await this.csmCesiumMap.whenReady();
+        if (!this.isCurrentRendererInit(rendererToken) || !this.useGlobe) return;
+        this.markRendererReady(rendererToken);
+        markLcpDebug('wm:map:cesium-ready');
+        return;
+      }
       const { GlobeMap } = await import('./GlobeMap');
       if (!this.isCurrentRendererInit(rendererToken)) return;
       this.prepareRendererDom('globe-mode');
@@ -660,7 +674,9 @@ export class MapContainer {
 
   private handleGlobeInitFailure(token: number, error: unknown): void {
     if (token !== this.globeInitToken || !this.useGlobe) return;
-    console.warn('[MapContainer] Globe initialization failed, falling back to SVG map', error);
+    console.warn(`[MapContainer] ${isCsmMode() ? 'Cesium' : 'Globe'} initialization failed, falling back to SVG map`, error);
+    this.csmCesiumMap?.destroy();
+    this.csmCesiumMap = null;
     this.globeMap?.destroy();
     this.globeMap = null;
     this.useGlobe = false;
@@ -799,6 +815,8 @@ export class MapContainer {
       this.globeInitToken++;
       this.globeMap?.destroy();
       this.globeMap = null;
+      this.csmCesiumMap?.destroy();
+      this.csmCesiumMap = null;
       this.useGlobe = false;
       this.useDeckGL = this.shouldUseDeckGL();
       const layers = sanitizeResilienceScoreForRenderer(snapshot.layers, this.useDeckGL);
@@ -947,7 +965,9 @@ export class MapContainer {
     }
     let completed = true;
     if (this.useGlobe) {
-      completed = await this.globeMap?.whenViewportSettled() ?? false;
+      completed = this.csmCesiumMap
+        ? await this.csmCesiumMap.whenViewportSettled()
+        : await this.globeMap?.whenViewportSettled() ?? false;
     } else if (this.useDeckGL) {
       completed = await this.deckGLMap?.whenViewportSettled() ?? false;
     }
@@ -983,12 +1003,13 @@ export class MapContainer {
   // ─── Unified public API - delegates to active map implementation ────────────
 
   public render(): void {
-    if (this.useGlobe) { this.globeMap?.render(); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.render(); this.globeMap?.render(); return; }
     if (this.useDeckGL) { this.deckGLMap?.render(); } else { this.svgMap?.render(); }
   }
 
   public resize(): void {
     if (this.useGlobe) {
+      this.csmCesiumMap?.resize();
       this.globeMap?.resize();
       return;
     }
@@ -1001,7 +1022,7 @@ export class MapContainer {
 
   public setIsResizing(isResizing: boolean): void {
     this.isResizingInternal = isResizing;
-    if (this.useGlobe) { this.globeMap?.setIsResizing(isResizing); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setIsResizing(isResizing); this.globeMap?.setIsResizing(isResizing); return; }
     if (this.useDeckGL) { this.deckGLMap?.setIsResizing(isResizing); } else { this.svgMap?.setIsResizing(isResizing); }
   }
 
@@ -1019,7 +1040,7 @@ export class MapContainer {
   }
 
   private applyView(view: MapView, zoom?: number): void {
-    if (this.useGlobe) { this.globeMap?.setView(view, zoom); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setView(view, zoom); this.globeMap?.setView(view, zoom); return; }
     if (this.useDeckGL) { this.deckGLMap?.setView(view as DeckMapView, zoom); } else { this.svgMap?.setView(view, zoom); }
   }
 
@@ -1034,7 +1055,7 @@ export class MapContainer {
   }
 
   private applyZoom(zoom: number): void {
-    if (this.useGlobe) { this.globeMap?.setZoom(zoom); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setZoom(zoom); this.globeMap?.setZoom(zoom); return; }
     if (this.useDeckGL) { this.deckGLMap?.setZoom(zoom); } else { this.svgMap?.setZoom(zoom); }
   }
 
@@ -1050,7 +1071,7 @@ export class MapContainer {
   }
 
   private applyCenter(lat: number, lon: number, zoom?: number): void {
-    if (this.useGlobe) { this.globeMap?.setCenter(lat, lon, zoom); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setCenter(lat, lon, zoom); this.globeMap?.setCenter(lat, lon, zoom); return; }
     if (this.useDeckGL) {
       this.deckGLMap?.setCenter(lat, lon, zoom);
     } else {
@@ -1060,7 +1081,7 @@ export class MapContainer {
   }
 
   public getCenter(): { lat: number; lon: number } | null {
-    if (this.useGlobe) return this.globeMap?.getCenter() ?? null;
+    if (this.useGlobe) return this.csmCesiumMap?.getCenter() ?? this.globeMap?.getCenter() ?? null;
     if (this.useDeckGL) return this.deckGLMap?.getCenter() ?? null;
     return this.svgMap?.getCenter() ?? null;
   }
@@ -1071,12 +1092,12 @@ export class MapContainer {
       this.cachedOnTimeRangeChanged?.(range);
       return;
     }
-    if (this.useGlobe) { this.globeMap?.setTimeRange(range); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setTimeRange(range); this.globeMap?.setTimeRange(range); return; }
     if (this.useDeckGL) { this.deckGLMap?.setTimeRange(range); } else { this.svgMap?.setTimeRange(range); }
   }
 
   public getTimeRange(): TimeRange {
-    if (this.useGlobe) return this.globeMap?.getTimeRange() ?? this.initialState.timeRange;
+    if (this.useGlobe) return this.csmCesiumMap?.getTimeRange() ?? this.globeMap?.getTimeRange() ?? this.initialState.timeRange;
     if (this.useDeckGL) return this.deckGLMap?.getTimeRange() ?? this.initialState.timeRange;
     return this.svgMap?.getTimeRange() ?? this.initialState.timeRange;
   }
@@ -1096,12 +1117,12 @@ export class MapContainer {
     this.renderUkmtoStatus(sanitized.ais);
     this.emergencyLayer.setEnabled(!this.useGlobe && sanitized.aircraftEmergencies === true);
     this.notamAirspaceLayer.setEnabled(this.useDeckGL && sanitized.flights === true);
-    if (this.useGlobe) { this.globeMap?.setLayers(sanitized); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setLayers(sanitized); this.globeMap?.setLayers(sanitized); return; }
     if (this.useDeckGL) { this.deckGLMap?.setLayers(sanitized); } else { this.svgMap?.setLayers(sanitized); }
   }
 
   public getState(): MapContainerState {
-    if (this.useGlobe) return this.globeMap?.getState() ?? this.initialState;
+    if (this.useGlobe) return this.csmCesiumMap?.getState() ?? this.globeMap?.getState() ?? this.initialState;
     if (this.useDeckGL) {
       const state = this.deckGLMap?.getState();
       return state ? { ...state, view: state.view as MapView } : this.initialState;
@@ -1113,12 +1134,13 @@ export class MapContainer {
 
   public setEarthquakes(earthquakes: Earthquake[], options: { replaceEmpty?: boolean } = {}): void {
     this.cachedEarthquakes = earthquakes;
-    if (this.useGlobe) { this.globeMap?.setEarthquakes(earthquakes); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setEarthquakes(earthquakes); this.globeMap?.setEarthquakes(earthquakes); return; }
     if (this.useDeckGL) { this.deckGLMap?.setEarthquakes(earthquakes); } else { this.svgMap?.setEarthquakes(earthquakes, options); }
   }
 
   public setConflictEvents(events: AcledConflictEvent[]): void {
     this.cachedConflictEvents = events;
+    if (this.useGlobe) { this.csmCesiumMap?.setConflictEvents(events); return; }
     if (!this.useGlobe && !this.useDeckGL) {
       this.svgMap?.setConflictEvents(events);
     }
@@ -1139,7 +1161,7 @@ export class MapContainer {
 
   public setWeatherAlerts(alerts: WeatherAlert[]): void {
     this.cachedWeatherAlerts = alerts;
-    if (this.useGlobe) { this.globeMap?.setWeatherAlerts(alerts); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setWeatherAlerts(alerts); this.globeMap?.setWeatherAlerts(alerts); return; }
     if (this.useDeckGL) { this.deckGLMap?.setWeatherAlerts(alerts); } else { this.svgMap?.setWeatherAlerts(alerts); }
   }
 
@@ -1235,7 +1257,7 @@ export class MapContainer {
 
   public setProtests(events: SocialUnrestEvent[]): void {
     this.cachedProtests = events;
-    if (this.useGlobe) { this.globeMap?.setProtests(events); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setProtests(events); this.globeMap?.setProtests(events); return; }
     if (this.useDeckGL) {
       this.deckGLMap?.setProtests(events);
     } else {
@@ -1265,26 +1287,26 @@ export class MapContainer {
   public setMilitaryFlights(flights: MilitaryFlight[], clusters: MilitaryFlightCluster[] = []): void {
     this.cachedMilitaryFlights = flights;
     this.cachedMilitaryFlightClusters = clusters;
-    if (this.useGlobe) { this.globeMap?.setMilitaryFlights(flights); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setMilitaryFlights(flights); this.globeMap?.setMilitaryFlights(flights); return; }
     if (this.useDeckGL) { this.deckGLMap?.setMilitaryFlights(flights, clusters); } else { this.svgMap?.setMilitaryFlights(flights, clusters); }
   }
 
   public setMilitaryVessels(vessels: MilitaryVessel[], clusters: MilitaryVesselCluster[] = []): void {
     this.cachedMilitaryVessels = vessels;
     this.cachedMilitaryVesselClusters = clusters;
-    if (this.useGlobe) { this.globeMap?.setMilitaryVessels(vessels, clusters); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setMilitaryVessels(vessels); this.globeMap?.setMilitaryVessels(vessels, clusters); return; }
     if (this.useDeckGL) { this.deckGLMap?.setMilitaryVessels(vessels, clusters); } else { this.svgMap?.setMilitaryVessels(vessels, clusters); }
   }
 
   public setNaturalEvents(events: NaturalEvent[]): void {
     this.cachedNaturalEvents = events;
-    if (this.useGlobe) { this.globeMap?.setNaturalEvents(events); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setNaturalEvents(events); this.globeMap?.setNaturalEvents(events); return; }
     if (this.useDeckGL) { this.deckGLMap?.setNaturalEvents(events); } else { this.svgMap?.setNaturalEvents(events); }
   }
 
   public setFires(fires: FireMarker[]): void {
     this.cachedFires = fires;
-    if (this.useGlobe) { this.globeMap?.setFires(fires); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setFires(fires); this.globeMap?.setFires(fires); return; }
     if (this.useDeckGL) {
       this.deckGLMap?.setFires(fires);
     } else {
@@ -1304,7 +1326,7 @@ export class MapContainer {
 
   public setUcdpEvents(events: UcdpGeoEvent[]): void {
     this.cachedUcdpEvents = events;
-    if (this.useGlobe) { this.globeMap?.setUcdpEvents(events); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setUcdpEvents(events); this.globeMap?.setUcdpEvents(events); return; }
     if (this.useDeckGL) {
       this.deckGLMap?.setUcdpEvents(events);
     }
@@ -1312,7 +1334,7 @@ export class MapContainer {
 
   public setDisplacementFlows(flows: DisplacementFlow[]): void {
     this.cachedDisplacementFlows = flows;
-    if (this.useGlobe) { this.globeMap?.setDisplacementFlows(flows); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setDisplacementFlows(flows); this.globeMap?.setDisplacementFlows(flows); return; }
     if (this.useDeckGL) {
       this.deckGLMap?.setDisplacementFlows(flows);
     }
@@ -1379,7 +1401,7 @@ export class MapContainer {
 
   public setDiseaseOutbreaks(outbreaks: DiseaseOutbreakItem[]): void {
     this.cachedDiseaseOutbreaks = outbreaks;
-    if (this.useGlobe) return; // TODO: add globe support for disease outbreaks layer
+    if (this.useGlobe) { this.csmCesiumMap?.setDiseaseOutbreaks(outbreaks); return; }
     if (this.useDeckGL) this.deckGLMap?.setDiseaseOutbreaks(outbreaks);
   }
 
@@ -1547,13 +1569,13 @@ export class MapContainer {
 
   public onHotspotClicked(callback: (hotspot: Hotspot) => void): void {
     this.cachedOnHotspotClicked = callback;
-    if (this.useGlobe) { this.globeMap?.setOnHotspotClick(callback); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setOnHotspotClick(callback); this.globeMap?.setOnHotspotClick(callback); return; }
     if (this.useDeckGL) { this.deckGLMap?.setOnHotspotClick(callback); } else { this.svgMap?.onHotspotClicked(callback); }
   }
 
   public onTimeRangeChanged(callback: (range: TimeRange) => void): void {
     this.cachedOnTimeRangeChanged = callback;
-    if (this.useGlobe) { this.globeMap?.onTimeRangeChanged(callback); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setOnTimeRangeChange(callback); this.globeMap?.onTimeRangeChanged(callback); return; }
     if (this.useDeckGL) { this.deckGLMap?.setOnTimeRangeChange(callback); } else { this.svgMap?.onTimeRangeChanged(callback); }
   }
 
@@ -1565,7 +1587,7 @@ export class MapContainer {
       if (layer === 'flights') this.notamAirspaceLayer.setEnabled(this.useDeckGL && enabled);
       callback(layer, enabled, source);
     };
-    if (this.useGlobe) { this.globeMap?.setOnLayerChange(notify); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setOnLayerChange(notify); this.globeMap?.setOnLayerChange(notify); return; }
     if (this.useDeckGL) { this.deckGLMap?.setOnLayerChange(notify); } else { this.svgMap?.setOnLayerChange(notify); }
   }
 
@@ -1578,13 +1600,13 @@ export class MapContainer {
 
   public getBbox(): string | null {
     if (this.useDeckGL) return this.deckGLMap?.getBbox() ?? null;
-    if (this.useGlobe) return this.globeMap?.getBbox() ?? null;
+    if (this.useGlobe) return this.csmCesiumMap?.getBbox() ?? this.globeMap?.getBbox() ?? null;
     return null;
   }
 
   public onStateChanged(callback: (state: MapContainerState) => void): void {
     this.cachedOnStateChanged = callback;
-    if (this.useGlobe) { this.globeMap?.onStateChanged(callback); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.onStateChanged(callback); this.globeMap?.onStateChanged(callback); return; }
     if (this.useDeckGL) {
       this.deckGLMap?.setOnStateChange((state) => {
         callback({ ...state, view: state.view as MapView });
@@ -1625,7 +1647,7 @@ export class MapContainer {
   // UI visibility methods
   public hideLayerToggle(layer: keyof MapLayers): void {
     this.hiddenLayerToggles.add(layer);
-    if (this.useGlobe) { this.globeMap?.hideLayerToggle(layer); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.hideLayerToggle(layer); this.globeMap?.hideLayerToggle(layer); return; }
     if (this.useDeckGL) {
       this.deckGLMap?.hideLayerToggle(layer);
     } else {
@@ -1635,7 +1657,7 @@ export class MapContainer {
 
   public setLayerLoading(layer: keyof MapLayers, loading: boolean): void {
     this.layerLoadingState.set(layer, loading);
-    if (this.useGlobe) { this.globeMap?.setLayerLoading(layer, loading); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setLayerLoading(layer, loading); this.globeMap?.setLayerLoading(layer, loading); return; }
     if (this.useDeckGL) {
       this.deckGLMap?.setLayerLoading(layer, loading);
     } else {
@@ -1645,7 +1667,7 @@ export class MapContainer {
 
   public setLayerReady(layer: keyof MapLayers, hasData: boolean): void {
     this.layerReadyState.set(layer, hasData);
-    if (this.useGlobe) { this.globeMap?.setLayerReady(layer, hasData); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setLayerReady(layer, hasData); this.globeMap?.setLayerReady(layer, hasData); return; }
     if (this.useDeckGL) {
       this.deckGLMap?.setLayerReady(layer, hasData);
     } else {
@@ -1670,7 +1692,7 @@ export class MapContainer {
       layers: { ...this.initialState.layers, [layer]: true },
     };
     if (!this.hasActiveRenderer()) return;
-    if (this.useGlobe) { this.globeMap?.enableLayer(layer); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.enableLayer(layer); this.globeMap?.enableLayer(layer); return; }
     if (this.useDeckGL) {
       this.deckGLMap?.enableLayer(layer);
     } else {
@@ -1764,7 +1786,7 @@ export class MapContainer {
   }
 
   public flashLocation(lat: number, lon: number, durationMs?: number): void {
-    if (this.useGlobe) { this.globeMap?.flashLocation(lat, lon, durationMs); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.flashLocation(lat, lon, durationMs); this.globeMap?.flashLocation(lat, lon, durationMs); return; }
     if (this.useDeckGL) {
       this.deckGLMap?.flashLocation(lat, lon, durationMs);
     } else {
@@ -1774,19 +1796,19 @@ export class MapContainer {
 
   public onNewsClicked(callback: (item: Pick<NewsLocationMarker, 'article' | 'title'>) => void): void {
     this.cachedOnNewsClicked = callback;
-    if (this.useGlobe) { this.globeMap?.setOnNewsClick(callback); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setOnNewsClick(callback); this.globeMap?.setOnNewsClick(callback); return; }
     if (this.useDeckGL) { this.deckGLMap?.setOnNewsClick(callback); } else { this.svgMap?.setOnNewsClick(callback); }
   }
 
   public onCountryClicked(callback: (country: CountryClickPayload) => void): void {
     this.cachedOnCountryClicked = callback;
-    if (this.useGlobe) { this.globeMap?.setOnCountryClick(callback); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setOnCountryClick(callback); this.globeMap?.setOnCountryClick(callback); return; }
     if (this.useDeckGL) { this.deckGLMap?.setOnCountryClick(callback); } else { this.svgMap?.setOnCountryClick(callback); }
   }
 
   public onMapContextMenu(callback: (payload: { lat: number; lon: number; screenX: number; screenY: number; countryCode?: string; countryName?: string }) => void): void {
     this.cachedOnMapContextMenu = callback;
-    if (this.useGlobe) { this.globeMap?.setOnMapContextMenu(callback); return; }
+    if (this.useGlobe) { this.csmCesiumMap?.setOnMapContextMenu(callback); this.globeMap?.setOnMapContextMenu(callback); return; }
     if (this.useDeckGL) { this.deckGLMap?.setOnMapContextMenu(callback); }
   }
 
@@ -1912,6 +1934,8 @@ export class MapContainer {
     this.globeInitToken++;
     this.rendererInitToken++;
     this.globeMap?.destroy();
+    this.csmCesiumMap?.destroy();
+    this.csmCesiumMap = null;
     this.deckGLMap?.destroy();
     this.svgMap?.destroy();
     this.clearCache();

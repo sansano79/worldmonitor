@@ -1,6 +1,6 @@
 # Revisión del directorio público de sedes SEIDOR
 
-Fecha de contraste: 2026-11-07.
+Fecha de contraste: 2026-11-08.
 
 Fuente de direcciones: https://www.seidor.com/en-be/our-offices. El fichero revisado es `src/config/seidor-offices.json` del árbol de trabajo, que contiene cambios locales en curso.
 
@@ -8,9 +8,11 @@ Las 78 denominaciones del fichero aparecen en el directorio oficial y las palabr
 
 El 2026-11-07 el usuario facilitó una lista de direcciones. La ficha de Dubái que proporcionó difiere de la página del directorio consultada: se ha actualizado la dirección local con su información. La comparación automatizada anterior se hizo antes de ese cambio; el marcador de Dubái sigue siendo aproximado a escala de ciudad.
 
-**Ninguna coordenada se considera verificada a nivel de edificio.** Las 78 sedes conservan precisión `city`, que la interfaz presenta como centro aproximado; las coordenadas representan una ciudad/localidad o quedan pendientes cuando la fuente disponible solo resuelve el complejo, una dirección virtual o un topónimo ambiguo. Cada fila de la tabla deja constancia de ese límite. Esto no confirma ocupación de edificio ni vigencia operativa. No se exige un punto exacto de edificio para visualizar el directorio público.
+Se contrastaron las direcciones publicadas por SEIDOR con el nomenclátor de OpenStreetMap (consultas de Nominatim, 2026-11-08). Se actualizaron 16 puntos cuando la ficha oficial y el objeto cartográfico coinciden por calle/número/código postal o nombre del edificio. La precisión declarada distingue `address`, `address-range` y `building`; el resto de las 62 sedes sigue en `city` y conserva su centro aproximado. Los enlaces de cada punto llevan al objeto OSM usado y la interfaz ofrece atribución OpenStreetMap (ODbL).
 
-Se comprobó la contención geométrica de los 78 puntos contra el polígono del país declarado en `public/data/countries.geojson`: 70 quedan dentro y ocho fuera: Beirut, Cape Town, Dubai, Las Palmas, Palma de Mallorca, Port Louis, San Juan y Santander. Esta prueba solo detecta desajustes con esa geometría de mapa; no demuestra que el punto sea incorrecto ni que esté en el mar. Se marcaron para revisión, sin moverlos a ciegas, porque faltan coordenadas validadas de localidad/sede o una fuente que explique el borde simplificado.
+Los puntos de dirección/edificio geocodifican la dirección o el polígono cartográfico relacionado; **no verifican que SEIDOR ocupe actualmente ese inmueble, planta o entrada**. La atribución de SEIDOR procede de su directorio oficial. Las direcciones virtuales, topónimos ambiguos y resultados que solo identifican una calle permanecen aproximados; no se movieron a un resultado dudoso. La comparación con polígonos nacionales sigue siendo solo un control geométrico, no prueba de error.
+
+Se comprobó la contención geométrica de los 78 puntos contra el polígono del país declarado en `public/data/countries.geojson`: 70 quedan dentro y ocho fuera: Beirut, Cape Town, Dubai, Las Palmas, Palma de Mallorca, Port Louis, San Juan y Santander. Esta prueba solo detecta desajustes con esa geometría de mapa; no demuestra que el punto sea incorrecto ni que esté en el mar. Las Palmas ahora coincide con la dirección publicada (León y Castillo 177) aunque permanece fuera del polígono simplificado; los otros siete quedan pendientes de contraste geográfico suficiente.
 
 Casos que requieren atención por localidad indicada en la dirección: Lisboa (Algés), Miami (Doral), Pamplona (Cordovilla), Heredia (Santa Rosa de Santo Domingo), Dubái (Al Quoz 3) y Panamá, cuya ficha dice «Centro virtual». Kerala figura en Koratty. Se corrigieron cuatro marcadores al centro de la localidad indicada y se mantuvo `coordinatePrecision: "city"`: Miami/Doral (GeoNames), Lisboa/Algés (Getty TGN), Heredia/Santa Rosa (GeoNames) y Pamplona/Cordovilla (coordenada publicada para el núcleo de Cordovilla por SoloPueblos). Fuentes consultadas el 2026-11-07: [Doral, GeoNames](https://www.geonames.org/4153471/doral.html), [Algés, Getty Thesaurus of Geographic Names](https://www.getty.edu/vow/TGNFullDisplay?english=N&find=&nation=&place=religious+center&subjectid=1049673), [Santa Rosa, GeoNames](https://www.geonames.org/advanced-search.html?country=CR&q=Heredia&startRow=50), [Cordovilla, Ayuntamiento de Galar](https://www.cendeadegalar.es/pueblos-de-la-cendea/cordovilla/) y [coordenada del núcleo de Cordovilla, SoloPueblos](https://solopueblos.net/comunidad-foral-de-navarra/navarra/cordovilla.html). Las fuentes de topónimo no geocodifican el edificio de SEIDOR; las coordenadas son representativas de localidad y no de sede.
 
@@ -18,12 +20,12 @@ En Miami, el directorio inmobiliario consultado sitúa la dirección 3105 NW 107
 
 | Sede en el directorio | Localidad que figura en el fichero | Precisión declarada | Estado y motivo |
 | --- | --- | --- | --- |
-| Barcelona (Headquarters) | Barcelona | city | Aproximada: centro de localidad; edificio pendiente |
+| Barcelona (Headquarters) | Barcelona | address-range | Dirección 44-40 de Carrer de Provençals, CP 08019; pin OSM del rango 40-44. No es una entrada verificada. |
 | Madrid | Madrid | city | Aproximada: centro de localidad; edificio pendiente |
-| Valencia | Valencia | city | Aproximada: centro de localidad; edificio pendiente |
-| Sevilla | Sevilla | city | Aproximada: centro de localidad; edificio pendiente |
-| Bilbao | Bilbao | city | Aproximada: centro de localidad; edificio pendiente |
-| A Coruña | A Coruña | city | Aproximada: centro de localidad; edificio pendiente |
+| Valencia | Valencia | building | Edificio Aqua mapeado en Carrer de Menorca 19, CP 46023; planta SEIDOR no verificada cartográficamente. |
+| Sevilla | Sevilla | building | Edificio Insur mapeado en Av. Diego Martínez Barrio 10; coincide por nombre y número. CP OSM difiere del directorio. |
+| Bilbao | Bilbao | address | Museo plaza 1, CP 48009; punto OSM de dirección. Ocupación del edificio sin verificar. |
+| A Coruña | A Coruña | address | Paseo Alcalde Francisco Vázquez 59, CP 15002; dirección OSM coincidente. |
 | Almería | Almería | city | Aproximada: centro de localidad; edificio pendiente |
 | Asuncion | Asuncion | city | Aproximada: centro de localidad; edificio pendiente |
 | Beaumont-lès-Valence | Beaumont-lès-Valence | city | Aproximada: centro de localidad; edificio pendiente |
@@ -31,12 +33,12 @@ En Miami, el directorio inmobiliario consultado sitúa la dirección 3105 NW 107
 | Belo Horizonte | Belo Horizonte | city | Aproximada: centro de localidad; edificio pendiente |
 | Bogotá | Bogotá | city | Aproximada: centro de localidad; edificio pendiente |
 | Bolivia | Santa Cruz de la Sierra | city | Aproximada: centro de localidad; edificio pendiente |
-| Bologna | Mordano | city | Aproximada: centro de localidad; edificio pendiente |
+| Bologna | Mordano | address | Via San Francesco 1903, CP 40027 y Mordano; punto OSM coincide con dirección y localidad. |
 | Brussels | Brussels | city | Aproximada: centro de localidad; edificio pendiente |
-| Buenos Aires | Buenos Aires | city | Aproximada: centro de localidad; edificio pendiente |
+| Buenos Aires | Buenos Aires | address | Av. Caseros 3039; dirección OSM coincidente. El código postal del punto cartográfico difiere del directorio. |
 | Cairo | Cairo | city | Aproximada: centro de localidad; edificio pendiente |
 | Cape Town | Cape Town | city | Revisar: punto fuera del polígono ZA; sin corrección por falta de fuente |
-| Cartagena | Cartagena | city | Aproximada: centro de localidad; edificio pendiente |
+| Cartagena | Cartagena | building | Torre Beaza, Calle Belgrado 14; edificio OSM coincidente. El código postal cartográfico difiere del directorio. |
 | Casablanca | Casablanca | city | Aproximada: centro de localidad; edificio pendiente |
 | Ciudad de Guatemala | Guatemala City | city | Aproximada: centro de localidad; edificio pendiente |
 | Concorezzo | Concorezzo | city | Aproximada: centro de localidad; edificio pendiente |
@@ -44,23 +46,23 @@ En Miami, el directorio inmobiliario consultado sitúa la dirección 3105 NW 107
 | Dar es Salaam | Dar es Salaam | city | Aproximada: centro de localidad; edificio pendiente |
 | Doha | Doha | city | Aproximada: centro de localidad; edificio pendiente |
 | Dubai | Dubai | city | Revisar: punto fuera del polígono AE y dirección en Al Quoz 3; sin centro validado |
-| Dublin | Dublin | city | Aproximada: centro de localidad; edificio pendiente |
+| Dublin | Dublin | address-range | Harcourt Street 87-88, CP D02 VH98; coincide con el 88 publicado dentro del rango. |
 | El Salvador | San Salvador | city | Aproximada: centro de localidad; edificio pendiente |
 | Estado de México | Huixquilucan | city | Aproximada: centro de localidad; edificio pendiente |
 | Goiânia | Goiânia | city | Aproximada: centro de localidad; edificio pendiente |
-| Götenborg | Gothenburg | city | Aproximada: centro de localidad; edificio pendiente |
+| Götenborg | Gothenburg | address | Mässans Gata 10; dirección OSM coincidente. El código postal cartográfico difiere del directorio. |
 | Granada | Armilla | city | Aproximada: centro de localidad; edificio pendiente |
-| Halmstad | Halmstad | city | Aproximada: centro de localidad; edificio pendiente |
+| Halmstad | Halmstad | address | Gamletullsgatan 12; punto OSM del número. El código postal difiere; ocupación sin confirmar. |
 | Heredia | Santa Rosa, Santo Domingo | city | Aproximada: centro de localidad; edificio pendiente |
-| Houston | The Woodlands | city | Aproximada: centro de localidad; edificio pendiente |
+| Houston | The Woodlands | building | 1800 Hughes Landing Boulevard, CP 77380; edificio cartográfico coincidente con la dirección. |
 | Johannesburg | Johannesburg | city | Aproximada: centro de localidad; edificio pendiente |
 | Kerala | Koratty | city | Aproximada: centro de localidad; edificio pendiente |
 | Kuwait City | Kuwait City | city | Aproximada: centro de localidad; edificio pendiente |
-| Las Palmas | Las Palmas de Gran Canaria | city | Revisar: punto fuera del polígono ES; sin corrección por falta de fuente |
+| Las Palmas | Las Palmas de Gran Canaria | building | León y Castillo 177, CP 35004; edificio cartográfico de la dirección publicada. Fuera del polígono ES simplificado. |
 | León | León | city | Aproximada: centro de localidad; edificio pendiente |
 | Lisboa | Algés | city | Aproximada: centro de localidad; edificio pendiente |
-| London | Weybridge | city | Aproximada: centro de localidad; edificio pendiente |
-| Lusaka | Lusaka | city | Aproximada: centro de localidad; edificio pendiente |
+| London | Weybridge | building | Egerton House, Baker Street 68, KT13 8AL; coincide nombre, número y código postal. |
+| Lusaka | Lusaka | building | SunShare Tower/Katima Mulilo Road; punto OSM del sitio nombrado. |
 | Málaga | Málaga | city | Aproximada: centro de localidad; edificio pendiente |
 | Miami | Doral | city | Aproximada: centro de localidad; edificio pendiente |
 | Montevideo | Montevideo | city | Aproximada: centro de localidad; edificio pendiente |
@@ -84,7 +86,7 @@ En Miami, el directorio inmobiliario consultado sitúa la dirección 3105 NW 107
 | San Pedro Sula | San Pedro Sula | city | Aproximada: centro de localidad; edificio pendiente |
 | San Sebastián | San Sebastián | city | Aproximada: centro de localidad; edificio pendiente |
 | Santander | Santander | city | Revisar: punto fuera del polígono ES; sin corrección por falta de fuente |
-| Santiago de Chile | Santiago | city | Aproximada: centro de localidad; edificio pendiente |
+| Santiago de Chile | Santiago | building | Hendaya 60, Las Condes; edificio cartográfico de la dirección publicada. |
 | Santo Domingo | Santo Domingo | city | Aproximada: centro de localidad; edificio pendiente |
 | São Paulo | São Paulo | city | Aproximada: centro de localidad; edificio pendiente |
 | Shangai | Shanghai | city | Aproximada: centro de localidad; edificio pendiente |

@@ -39,7 +39,7 @@ import {
 // off the eager @/config barrel and load only with this lazy renderer (#4404).
 import { STARTUP_HUBS, ACCELERATORS, TECH_HQS, CLOUD_REGIONS } from '@/config/tech-geo';
 import { AI_DATA_CENTERS } from '@/config/ai-datacenters';
-import { SEIDOR_OFFICES } from '@/config/seidor-offices';
+import { SEIDOR_OFFICES, seidorCoordinateDescription } from '@/config/seidor-offices';
 import { worldTopologyUrl, UNDERSEA_CABLES, NUCLEAR_FACILITIES, SANCTIONED_COUNTRIES, ECONOMIC_CENTERS, SPACEPORTS, CRITICAL_MINERALS } from '@/config/geo-map';
 import { mountWebcamPinButton } from '@/services/webcams/pinned-store';
 import type { WebcamEntry, WebcamCluster } from '@/generated/client/worldmonitor/webcam/v1/service_client';
@@ -3115,7 +3115,7 @@ export class MapComponent {
       });
     }
 
-    // Published SEIDOR offices. Coordinates are city centres, not building pins.
+    // Published SEIDOR offices. Marker precision is disclosed per coordinate.
     if (this.state.layers.seidorOffices) {
       SEIDOR_OFFICES.forEach((office) => {
         if (this.isOverlayMarkerCut(office)) return;
@@ -3128,7 +3128,7 @@ export class MapComponent {
         marker.style.cssText = 'position:absolute;width:12px;height:12px;border:1px solid #fff;border-radius:50%;padding:0;background:#3085ff;box-shadow:0 0 7px #3085ff;transform:translate(-50%,-50%);z-index:50;cursor:pointer;pointer-events:auto';
         marker.style.left = `${pos[0]}px`;
         marker.style.top = `${pos[1]}px`;
-        marker.title = `SEIDOR ${office.name} · approximate city location`;
+        marker.title = `SEIDOR ${office.name} · ${seidorCoordinateDescription(office.coordinatePrecision)}`;
         marker.setAttribute('aria-label', `SEIDOR ${office.name}`);
         marker.addEventListener('click', (event) => {
           event.stopPropagation();

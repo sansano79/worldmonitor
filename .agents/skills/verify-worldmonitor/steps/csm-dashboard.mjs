@@ -34,21 +34,15 @@ export default async function ({ page, base, shot, log }) {
     const markers = page.locator('.seidor-office-marker');
     await markers.first().waitFor({ state: 'visible', timeout: 30_000 });
     const count = await markers.count();
-    log('public office city-centre markers:', count);
+    log('public office markers:', count);
     if (count !== 78) throw new Error(`expected 78 public SEIDOR locations, received ${count}`);
-    const label = await markers.evaluateAll(elements => {
-      const visible = elements.find(element => {
-        const rect = element.getBoundingClientRect();
-        return rect.x >= 12 && rect.right <= innerWidth - 12
-          && rect.y >= 105 && rect.bottom <= innerHeight - 95
-          && document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2) === element;
-      });
-      return visible?.getAttribute('aria-label') ?? null;
-    });
-    if (!label) throw new Error('no public office marker is visible in the map viewport');
-    await page.locator(`.seidor-office-marker[aria-label="${label}"]`).click();
-    await page.locator('.map-popup').getByText('Map position is approximate (city centre).').waitFor();
-    log('office popup:', label, '(approximate city location)');
+    const marker = page.locator('.seidor-office-marker[aria-label="SEIDOR Houston"]');
+    await marker.waitFor({ state: 'visible' });
+    await marker.evaluate(element => element.click());
+    const popup = page.locator('.map-popup');
+    await popup.getByText(/mapped building or site/).waitFor();
+    await popup.getByRole('link', { name: /Coordinate reference: OpenStreetMap contributors/ }).waitFor();
+    log('office popup: Houston, building precision and OSM reference shown');
     await shot('csm-office-detail');
     await page.locator('.popup-close').first().click();
   }

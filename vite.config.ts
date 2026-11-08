@@ -1109,6 +1109,10 @@ export default defineConfig(({ mode }) => {
 
         workbox: {
           globPatterns: ['assets/**/*.{js,css}'],
+          // Cesium is a user-selected map renderer, so keep its 4 MB engine
+          // chunk out of the install-time precache. The existing same-origin
+          // app-chunks runtime cache stores it after first use.
+          globIgnores: csmMode ? ['assets/CesiumMap-*.js'] : [],
           manifestTransforms: [dashboardPrecache.manifestTransform],
           navigateFallback: null,
           skipWaiting: true,
@@ -1195,6 +1199,9 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': resolve(__dirname, 'src'),
+        ...(csmMode
+          ? { 'cesium-runtime': resolve(__dirname, 'node_modules/@cesium/engine/index.js') }
+          : { './CesiumMap': resolve(__dirname, 'src/components/CesiumMap.unavailable.ts') }),
         child_process: resolve(__dirname, 'src/shims/child-process.ts'),
         'node:child_process': resolve(__dirname, 'src/shims/child-process.ts'),
         '@loaders.gl/worker-utils/dist/lib/process-utils/child-process-proxy.js': resolve(
@@ -1202,6 +1209,11 @@ export default defineConfig(({ mode }) => {
           'src/shims/child-process-proxy.ts'
         ),
       },
+    },
+    // Cesium's engine/widget exports are not compatible with Vite's default
+    // esbuild dependency scan; keep it in native ESM during CSM development.
+    optimizeDeps: {
+      exclude: csmMode ? ['cesium-runtime'] : [],
     },
     worker: {
       format: 'es',

@@ -954,7 +954,9 @@ export class PanelLayoutManager implements AppModule {
     for (const [key, panel] of Object.entries(this.ctx.panels)) {
       const isPremium = WEB_PREMIUM_PANELS.has(key)
         || (this.ctx.isDesktopApp && key === 'telegram-intel');
-      let reason = getPanelGateReason(state, isPremium);
+      let reason = isCsmMode()
+        ? PanelGateReason.NONE
+        : getPanelGateReason(state, isPremium);
 
       // Clerk-pro-only panels: even when hasPremiumAccess() returns
       // true via API/tester key, these panels need a Clerk userId
@@ -2010,7 +2012,7 @@ export class PanelLayoutManager implements AppModule {
    * keeps every tab they have — only the "+" locks.
    */
   private updateTabCapLock(): TabCapVerdict {
-    const verdict = evaluateTabCap(getAuthState(), this.tabsState?.tabs.length ?? 0);
+    const verdict = evaluateTabCap(getAuthState(), this.tabsState?.tabs.length ?? 0, isCsmMode());
     if (verdict.allowed) {
       // Only a would-be-capped user pays for the catalog probe; the cap stays
       // inactive until Pro Business is provably purchasable, so the limit and

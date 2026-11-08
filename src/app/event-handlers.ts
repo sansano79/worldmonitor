@@ -397,8 +397,9 @@ export class EventHandlerManager implements AppModule {
   enablePanelById(panelId: string, options?: { trackAnalytics?: boolean }): boolean {
     const config = this.ctx.panelSettings[panelId];
     if (!config) return false;
+    if (isCsmMode() && !isPanelEntitled(panelId, config, true)) return false;
     if (config.enabled) return true;
-    if (!hasPremiumAccess(getAuthState()) && isFreePanelCapCounted(panelId)) {
+    if (!isCsmMode() && !hasPremiumAccess(getAuthState()) && isFreePanelCapCounted(panelId)) {
       const enabledCount = countFreePanelCapUsage(this.ctx.panelSettings);
       if (enabledCount >= FREE_MAX_PANELS) {
         // Tell the user why nothing happened instead of failing silently.
@@ -440,6 +441,7 @@ export class EventHandlerManager implements AppModule {
       {
         variant: SITE_VARIANT,
         isPro,
+        fullEdition: isCsmMode(),
         persist: (settings) => saveToStorage(STORAGE_KEYS.panels, settings),
         applyPanelSettings: () => this.applyPanelSettings(),
         trackToggle: trackPanelToggled,
@@ -2167,7 +2169,7 @@ export class EventHandlerManager implements AppModule {
     const applyGate = (): void => {
       if (this.ctx.isDestroyed) return;
       const authState = getAuthState();
-      const verdict = evaluateExportGate(authState);
+      const verdict = evaluateExportGate(authState, isCsmMode());
       if (verdict.locked) {
         showLocked(exportLockToGateReason(verdict.reason));
         return;
@@ -2180,7 +2182,7 @@ export class EventHandlerManager implements AppModule {
           if (active) applyGate();
         });
       }
-      unlock(evaluateAvailableExportFormats(authState));
+      unlock(evaluateAvailableExportFormats(authState, isCsmMode()));
     };
 
     applyGate();
@@ -2223,7 +2225,7 @@ export class EventHandlerManager implements AppModule {
       getDisabledSources: () => this.ctx.disabledSources,
       toggleSource: (name: string) => {
         const reenabling = this.ctx.disabledSources.has(name);
-        if (reenabling && !isProUser()) {
+        if (reenabling && !isCsmMode() && !isProUser()) {
           const allSources = this.getAllSourceNames();
           const currentlyEnabled = allSources.filter(n => !this.ctx.disabledSources.has(n)).length;
           if (currentlyEnabled + 1 > FREE_MAX_SOURCES) {
@@ -2241,7 +2243,7 @@ export class EventHandlerManager implements AppModule {
         }
       },
       setSourcesEnabled: (names: string[], enabled: boolean) => {
-        if (enabled && !isProUser()) {
+        if (enabled && !isCsmMode() && !isProUser()) {
           const allSources = this.getAllSourceNames();
           const currentlyEnabled = allSources.filter(n => !this.ctx.disabledSources.has(n)).length;
           const wouldEnable = names.filter(n => this.ctx.disabledSources.has(n) && allSources.includes(n)).length;
@@ -2371,7 +2373,7 @@ export class EventHandlerManager implements AppModule {
     let gateHitTracked = false;
     const applyGate = (): void => {
       if (this.ctx.isDestroyed) return;
-      const verdict = evaluatePlaybackGate(getAuthState());
+      const verdict = evaluatePlaybackGate(getAuthState(), isCsmMode());
       const visible = verdict === 'visible';
       el.style.display = visible ? '' : 'none';
       // Losing access mid-replay must also LEAVE playback. `display: none`
