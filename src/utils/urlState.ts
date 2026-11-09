@@ -1,5 +1,6 @@
 import type { MapLayers } from '@/types';
 import type { MapView, TimeRange } from '@/components/Map';
+import { getMapZoomMaximum, isCsmMode } from '@/config/csm-mode';
 import { LAYER_REGISTRY } from '@/config/map-layer-definitions';
 
 // The registry is typed Record<keyof MapLayers, …>, so every layer is here; a
@@ -19,6 +20,11 @@ export interface ParsedMapUrlState {
   country?: string;
   expanded?: boolean;
   chokepoint?: string;
+}
+
+export interface ParseMapUrlStateOptions {
+  /** Override build mode only for callers parsing a link for a known surface. */
+  csmMode?: boolean;
 }
 
 /**
@@ -85,12 +91,18 @@ const parseClampedFloatParam = (
 
 export function parseMapUrlState(
   search: string,
-  fallbackLayers: MapLayers
+  fallbackLayers: MapLayers,
+  options: ParseMapUrlStateOptions = {},
 ): ParsedMapUrlState {
   const params = new URLSearchParams(search);
 
   const view = parseEnumParam(params, 'view', VIEW_VALUES);
-  const zoom = parseClampedFloatParam(params, 'zoom', 1, 10);
+  const zoom = parseClampedFloatParam(
+    params,
+    'zoom',
+    1,
+    getMapZoomMaximum(options.csmMode ?? isCsmMode()),
+  );
   const lat = parseClampedFloatParam(params, 'lat', -90, 90);
   const lon = parseClampedFloatParam(params, 'lon', -180, 180);
   const timeRange = parseEnumParam(params, 'timeRange', TIME_RANGES);

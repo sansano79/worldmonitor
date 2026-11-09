@@ -57,7 +57,9 @@ import {
   setGeoAlertGetter,
 } from '@/services/hotspot-escalation';
 import { getCachedCountryScoreValue } from '@/services/cached-risk-scores';
-import { CSM_MAP_LAYER_KEYS, isCsmMode } from '@/config/csm-mode';
+import { CSM_MAP_LAYER_KEYS, getMapZoomMaximum, isCsmMode } from '@/config/csm-mode';
+
+const MAX_MAP_ZOOM = getMapZoomMaximum();
 import { getAlertsNearLocation } from '@/services/geo-convergence';
 import { getCountryAtCoordinates, getCountryBbox } from '@/services/country-geometry';
 import type { CountryClickPayload } from './DeckGLMap';
@@ -1053,7 +1055,7 @@ export class MapComponent {
         if (e.ctrlKey) {
           // Pinch-to-zoom on trackpad
           const zoomDelta = -e.deltaY * 0.01;
-          this.state.zoom = Math.max(1, Math.min(10, this.state.zoom + zoomDelta));
+          this.state.zoom = Math.max(1, Math.min(MAX_MAP_ZOOM, this.state.zoom + zoomDelta));
         } else {
           // Two-finger scroll for pan, regular scroll for zoom
           if (Math.abs(e.deltaX) > Math.abs(e.deltaY) * 0.5 || e.shiftKey) {
@@ -1064,7 +1066,7 @@ export class MapComponent {
           } else {
             // Vertical scroll = zoom
             const zoomDelta = e.deltaY > 0 ? -0.15 : 0.15;
-            this.state.zoom = Math.max(1, Math.min(10, this.state.zoom + zoomDelta));
+            this.state.zoom = Math.max(1, Math.min(MAX_MAP_ZOOM, this.state.zoom + zoomDelta));
           }
         }
         this.applyTransform();
@@ -1154,7 +1156,7 @@ export class MapComponent {
           touch2.clientY - touch1.clientY
         );
         const scale = dist / lastTouchDist;
-        this.state.zoom = Math.max(1, Math.min(10, this.state.zoom * scale));
+        this.state.zoom = Math.max(1, Math.min(MAX_MAP_ZOOM, this.state.zoom * scale));
         lastTouchDist = dist;
 
         const center = {
@@ -4524,7 +4526,7 @@ export class MapComponent {
   }
 
   public zoomIn(): void {
-    this.state.zoom = Math.min(this.state.zoom + 0.5, 10);
+    this.state.zoom = Math.min(this.state.zoom + 0.5, MAX_MAP_ZOOM);
     this.applyTransform();
     // The on-screen +/- controls are excluded by shouldIgnoreInteractionStart, so a
     // mobile user zooming only via buttons would never arm label thinning otherwise.
@@ -5046,7 +5048,7 @@ export class MapComponent {
   }
 
   public setZoom(zoom: number): void {
-    this.state.zoom = Math.max(1, Math.min(10, zoom));
+    this.state.zoom = Math.max(1, Math.min(MAX_MAP_ZOOM, zoom));
     this.applyTransform();
     // Ensure base layer is intact after zoom change
     this.ensureBaseLayerIntact();

@@ -62,6 +62,48 @@
   accent-color: #60a5fa;
 }
 
+.cesium-csm-imagery-button,
+.cesium-csm-imagery-actions button {
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 1px solid rgb(96 165 250 / 45%);
+  border-radius: 6px;
+  color: #eaf3ff;
+  background: rgb(29 78 126 / 48%);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cesium-csm-imagery-button[aria-pressed="true"] { border-color: #60a5fa; }
+.cesium-csm-imagery-button:disabled,
+.cesium-csm-imagery-actions button:disabled { opacity: 0.55; cursor: wait; }
+
+.cesium-csm-imagery-panel {
+  display: grid;
+  gap: 7px;
+  min-width: min(260px, calc(100vw - 64px));
+  padding-top: 6px;
+  border-top: 1px solid rgb(148 163 184 / 24%);
+  white-space: normal;
+}
+
+.cesium-csm-imagery-panel[hidden] { display: none; }
+.cesium-csm-imagery-panel p { margin: 0; color: #c5d2e3; line-height: 1.4; }
+.cesium-csm-imagery-panel label { display: grid; gap: 4px; }
+.cesium-csm-imagery-panel input {
+  width: 100%;
+  min-height: 32px;
+  padding: 5px 7px;
+  border: 1px solid rgb(148 163 184 / 45%);
+  border-radius: 5px;
+  color: #f8fafc;
+  background: #101d2b;
+  font: inherit;
+}
+.cesium-csm-imagery-actions { display: flex; gap: 6px; }
+.cesium-csm-imagery-status { color: #bfdbfe; line-height: 1.4; }
+.cesium-csm-imagery-status[data-state="error"] { color: #fde68a; }
+
 .cesium-csm-layer-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; }
 
 .cesium-csm-feature-popup {

@@ -104,13 +104,14 @@ COPY docker/nginx.conf /etc/nginx/nginx.conf.template
 COPY docker/supervisord.conf /etc/supervisor/conf.d/worldmonitor.conf
 COPY docker/entrypoint.sh /app/entrypoint.sh
 COPY docker/render-nginx-realip.mjs /app/render-nginx-realip.mjs
+COPY docker/render-csm-runtime-config.mjs /app/render-csm-runtime-config.mjs
 COPY docker/validate-session-secret.mjs /app/validate-session-secret.mjs
 RUN chmod +x /app/entrypoint.sh
 
 # Ensure writable dirs for non-root
 RUN chown -R appuser:appgroup /app /tmp/nginx-client-body /tmp/nginx-proxy \
     /tmp/nginx-fastcgi /tmp/nginx-uwsgi /tmp/nginx-scgi /var/log/supervisor \
-    /var/lib/nginx /var/log/nginx
+    /var/lib/nginx /var/log/nginx /usr/share/nginx/html
 
 USER appuser
 

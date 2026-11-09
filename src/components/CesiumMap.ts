@@ -1,13 +1,15 @@
 /**
- * Keyless, CSM-only Cesium renderer. It uses public street tiles over the
- * bundled local Earth texture and public country boundaries; no Ion account
- * or terrain provider is configured here.
+ * CSM-only Cesium renderer. It uses public street tiles over the bundled
+ * local Earth texture by default, with optional Cesium ion photorealistic
+ * buildings enabled by a session-only access token.
  */
 import * as Cesium from 'cesium-runtime';
 import '@cesium/engine/Build/Widgets/CesiumWidget/CesiumWidget.css';
 import './cesium-map.css';
 import type { MapLayers } from '@/types';
 import { SEIDOR_OFFICES } from '@/config/seidor-offices';
+import { cesiumHeightToMapZoom, mapZoomToCesiumHeight } from '@/utils/cesium-zoom';
+import { CSM_PHOTOREALISTIC_ASSET_ID, getCsmCesiumIonClientToken, loadIonAssetWithTemporaryToken } from '@/utils/csm-photorealistic';
 import { MapPopup } from './MapPopup';
 import type { MapContainerState, MapView, TimeRange } from './MapContainer';
 import type { Earthquake } from '@/services/earthquakes';
@@ -72,6 +74,8 @@ export class CesiumMap {
   private readonly basemapStatus: HTMLDivElement;
   private readonly destroyHandlers: Array<() => void> = [];
   private destroyed = false;
+  private photorealisticTileset: Cesium.Cesium3DTileset | null = null;
+  private photorealisticLoading = false;
   private initialCameraDistance = 12_000_000;
   private countryNames = new Map<string, { code: string; name: string }>();
   private countryShapes: Array<{ country: { code: string; name: string }; polygons: GeoPolygon[] }> = [];
@@ -111,8 +115,12 @@ export class CesiumMap {
     this.viewer.scene.globe.showGroundAtmosphere = true;
     this.viewer.scene.fog.enabled = true;
     this.viewer.scene.highDynamicRange = false;
-    this.viewer.scene.screenSpaceCameraController.minimumZoomDistance = 100_000;
-    this.viewer.scene.screenSpaceCameraController.maximumZoomDistance = 25_000_000;
+    // Cesium's default 50% camera-change threshold can miss incremental wheel
+    // zooms, leaving the shared URL state at an older, much wider camera height.
+    this.viewer.camera.percentageChanged = 0.001;
+    const cameraController = this.viewer.scene.screenSpaceCameraController;
+    cameraController.minimumZoomDistance = mapZoomToCesiumHeight(18, this.initialCameraDistance);
+    cameraController.maximumZoomDistance = mapZoomToCesiumHeight(1, this.initialCameraDistance);
     container.dataset.mapRenderer = 'cesium';
 
     for (const layer of LAYERS) {
@@ -144,7 +152,7 @@ export class CesiumMap {
     // upstream: https://tile.openstreetmap.org/{z}/{x}/{y}.png
     const streets = new Cesium.UrlTemplateImageryProvider({
       url: `${base}tiles/osm/{z}/{x}/{y}.png`,
-      credit: new Cesium.Credit('<a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a> · Open Database License (ODbL)'),
+      credit: new Cesium.Credit('<a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a> · Open Database License (ODbL)', true),
       maximumLevel: 19,
       enablePickFeatures: false,
     });
@@ -170,6 +178,9 @@ export class CesiumMap {
     this.container.dataset.csmCesiumReady = 'true';
     this.container.dataset.csmOfficeCount = String(SEIDOR_OFFICES.length);
     this.initialCameraDistance = Math.min(24_000_000, Math.max(12_000_000, 12_000_000 * 862 / Math.max(this.container.clientWidth, 390)));
+    const cameraController = this.viewer.scene.screenSpaceCameraController;
+    cameraController.minimumZoomDistance = mapZoomToCesiumHeight(18, this.initialCameraDistance);
+    cameraController.maximumZoomDistance = mapZoomToCesiumHeight(1, this.initialCameraDistance);
     this.viewer.camera.setView({
       destination: Cesium.Cartesian3.fromDegrees(12, 18, this.initialCameraDistance),
       orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
@@ -205,7 +216,130 @@ export class CesiumMap {
       row.append(input, dot, text);
       root.appendChild(row);
     }
+    const imageryButton = document.createElement('button');
+    imageryButton.type = 'button';
+    imageryButton.className = 'cesium-csm-imagery-button';
+    imageryButton.textContent = 'Activar edificios 3D';
+    imageryButton.setAttribute('aria-expanded', 'false');
+    const imageryPanel = document.createElement('form');
+    imageryPanel.className = 'cesium-csm-imagery-panel';
+    imageryPanel.hidden = true;
+    imageryPanel.setAttribute('aria-label', 'Edificios fotorrealistas 3D');
+    const help = document.createElement('p');
+    help.textContent = 'Token de cliente Cesium ion: se envía a Cesium y no se almacena en el navegador. Para guardarlo entre visitas, el administrador puede configurarlo en el servidor.';
+    const tokenLabel = document.createElement('label');
+    tokenLabel.textContent = 'Token de Cesium ion';
+    const tokenInput = document.createElement('input');
+    tokenInput.type = 'password';
+    tokenInput.name = 'ion-token';
+    tokenInput.autocomplete = 'off';
+    tokenInput.spellcheck = false;
+    tokenInput.required = true;
+    tokenInput.setAttribute('aria-label', 'Token de Cesium ion');
+    tokenLabel.appendChild(tokenInput);
+    const actionRow = document.createElement('div');
+    actionRow.className = 'cesium-csm-imagery-actions';
+    const connectButton = document.createElement('button');
+    connectButton.type = 'submit';
+    connectButton.textContent = 'Conectar';
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.textContent = 'Cancelar';
+    const imageryStatus = document.createElement('div');
+    imageryStatus.className = 'cesium-csm-imagery-status';
+    imageryStatus.setAttribute('role', 'status');
+    actionRow.append(connectButton, closeButton);
+    imageryPanel.append(help, tokenLabel, actionRow);
+    imageryButton.addEventListener('click', () => {
+      if (this.photorealisticTileset) {
+        this.viewer.scene.primitives.remove(this.photorealisticTileset);
+        this.photorealisticTileset = null;
+        if (this.basemapStatus.dataset.reason === 'photorealistic') {
+          this.basemapStatus.hidden = true;
+          delete this.basemapStatus.dataset.reason;
+        }
+        imageryButton.textContent = 'Activar edificios 3D';
+        imageryButton.setAttribute('aria-pressed', 'false');
+        imageryStatus.textContent = 'Se mantiene la cartografía de calles y el globo local.';
+        delete imageryStatus.dataset.state;
+        this.viewer.scene.requestRender();
+        return;
+      }
+      const configuredToken = getCsmCesiumIonClientToken();
+      if (configuredToken) {
+        void this.enablePhotorealisticTiles(configuredToken, imageryButton, imageryPanel, connectButton, imageryStatus);
+        return;
+      }
+      imageryPanel.hidden = !imageryPanel.hidden;
+      imageryButton.setAttribute('aria-expanded', String(!imageryPanel.hidden));
+      if (!imageryPanel.hidden) tokenInput.focus();
+    });
+    closeButton.addEventListener('click', () => {
+      tokenInput.value = '';
+      imageryStatus.textContent = '';
+      imageryPanel.hidden = true;
+      imageryButton.setAttribute('aria-expanded', 'false');
+    });
+    imageryPanel.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const token = tokenInput.value.trim();
+      tokenInput.value = '';
+      void this.enablePhotorealisticTiles(token, imageryButton, imageryPanel, connectButton, imageryStatus);
+    });
+    root.append(imageryButton, imageryPanel, imageryStatus);
     return root;
+  }
+
+  private async enablePhotorealisticTiles(
+    token: string,
+    toggle: HTMLButtonElement,
+    panel: HTMLFormElement,
+    connectButton: HTMLButtonElement,
+    status: HTMLDivElement,
+  ): Promise<void> {
+    if (this.photorealisticLoading || this.photorealisticTileset) return;
+    if (!token) return;
+    this.photorealisticLoading = true;
+    toggle.disabled = true;
+    connectButton.disabled = true;
+    status.textContent = 'Conectando con Cesium ion…';
+    try {
+      const tileset = await loadIonAssetWithTemporaryToken(
+        Cesium.Ion,
+        token,
+        () => Cesium.Cesium3DTileset.fromIonAssetId(CSM_PHOTOREALISTIC_ASSET_ID, { showCreditsOnScreen: true }),
+      );
+      if (this.destroyed) {
+        tileset.destroy();
+        return;
+      }
+      this.viewer.scene.primitives.add(tileset);
+      this.photorealisticTileset = tileset;
+      const tileError = () => {
+        if (this.destroyed || this.photorealisticTileset !== tileset) return;
+        status.textContent = 'La fotogrametría no está disponible ahora. Se conserva la cartografía de calles.';
+        status.dataset.state = 'error';
+        this.basemapStatus.textContent = 'Edificios 3D no disponibles temporalmente · se conserva la cartografía de calles';
+        this.basemapStatus.dataset.reason = 'photorealistic';
+        this.basemapStatus.hidden = false;
+      };
+      tileset.tileFailed.addEventListener(tileError);
+      this.destroyHandlers.push(() => tileset.tileFailed.removeEventListener(tileError));
+      toggle.textContent = 'Desactivar edificios 3D';
+      toggle.setAttribute('aria-pressed', 'true');
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      status.textContent = 'Edificios 3D conectados. Arrastra con el botón derecho para inclinar la vista.';
+      delete status.dataset.state;
+      this.viewer.scene.requestRender();
+    } catch {
+      status.textContent = 'No se pudo conectar. Revisa el token, los permisos y el acceso de tu cuenta a este asset; el mapa sigue con su base habitual.';
+      status.dataset.state = 'error';
+    } finally {
+      this.photorealisticLoading = false;
+      toggle.disabled = false;
+      connectButton.disabled = false;
+    }
   }
 
   private installPicking(): void {
@@ -253,6 +387,9 @@ export class CesiumMap {
     const cameraChanged = () => this.emitState();
     this.viewer.camera.changed.addEventListener(cameraChanged);
     this.destroyHandlers.push(() => this.viewer.camera.changed.removeEventListener(cameraChanged));
+    const cameraMoveEnd = () => this.emitState();
+    this.viewer.camera.moveEnd.addEventListener(cameraMoveEnd);
+    this.destroyHandlers.push(() => this.viewer.camera.moveEnd.removeEventListener(cameraMoveEnd));
   }
 
   private addCountryBoundaries(features: CountryFeature[]): void {
@@ -412,8 +549,7 @@ export class CesiumMap {
   private emitState(): void {
     if (this.destroyed) return;
     const height = this.viewer.camera.positionCartographic.height;
-    const zoom = Math.max(1, Math.min(18, 18 - Math.log2(Math.max(1, height / 120_000))));
-    this.state.zoom = zoom;
+    this.state.zoom = cesiumHeightToMapZoom(height, this.initialCameraDistance);
     this.state.pan = { x: 0, y: 0 };
     this.options.onStateChanged?.(this.getState());
   }
@@ -438,7 +574,9 @@ export class CesiumMap {
   public getState(): MapContainerState { return { ...this.state, layers: { ...this.state.layers } }; }
 
   public setCenter(lat: number, lon: number, zoom?: number): void {
-    const height = zoom == null ? this.viewer.camera.positionCartographic.height : Math.max(100_000, this.initialCameraDistance / (2 ** Math.max(0, zoom - 2)));
+    const height = zoom == null
+      ? this.viewer.camera.positionCartographic.height
+      : mapZoomToCesiumHeight(zoom, this.initialCameraDistance);
     this.viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(lon, lat, height), duration: 0.55 });
   }
 
@@ -552,6 +690,10 @@ export class CesiumMap {
     this.destroyed = true;
     this.destroyHandlers.forEach((dispose) => dispose());
     this.popup.hide();
+    if (this.photorealisticTileset && !this.photorealisticTileset.isDestroyed()) {
+      this.viewer.scene.primitives.remove(this.photorealisticTileset);
+      this.photorealisticTileset = null;
+    }
     this.featurePopup?.remove();
     this.featurePopup = null;
     this.viewer.destroy();

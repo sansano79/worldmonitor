@@ -34,6 +34,9 @@ services:
       # Operator keys accepted by MCP and REST through X-WorldMonitor-Key.
       WORLDMONITOR_VALID_KEYS: "${WORLDMONITOR_VALID_KEYS:-}"
       RELAY_SHARED_SECRET: "${RELAY_SHARED_SECRET:?RELAY_SHARED_SECRET required — generate with: openssl rand -hex 32}"
+      # Public browser token: configure a dedicated Cesium ion client token
+      # restricted to assets:read, the photorealistic asset, and this app URL.
+      CSM_CESIUM_ION_TOKEN: "${CSM_CESIUM_ION_TOKEN:-}"
       WORLDMONITOR_RELAY_KEY: "${WORLDMONITOR_RELAY_KEY:-}"
       # LLM provider (any OpenAI-compatible endpoint)
       LLM_API_URL: "${LLM_API_URL:-}"

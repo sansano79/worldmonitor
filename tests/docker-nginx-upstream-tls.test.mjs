@@ -22,7 +22,7 @@ test('CSM OpenStreetMap tile proxy identifies the app and honours tile-use limit
   assert.match(block, /proxy_set_header Pragma "";/);
   assert.match(block, /proxy_cache_revalidate on;/);
   assert.match(block, /proxy_cache_valid 200 7d;/);
-  assert.match(block, /limit_req zone=osm_tiles_per_ip/);
+  assert.match(block, /limit_req zone=osm_tiles_per_ip burst=160 nodelay/);
   assert.match(block, /access_log off;/);
   assert.doesNotMatch(block, /proxy_cache_use_stale/);
 });

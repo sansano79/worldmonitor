@@ -8,6 +8,7 @@ import {
   withUrlFragment,
 } from '../src/utils/urlState.ts';
 import { LAYER_REGISTRY } from '../src/config/map-layer-definitions.ts';
+import { getMapZoomMaximum } from '../src/config/csm-mode.ts';
 
 const EMPTY_LAYERS = {
   conflicts: false, bases: false, cables: false, pipelines: false,
@@ -89,6 +90,30 @@ describe('parseMapUrlState coordinates at zero', () => {
     const state = parseMapUrlState('?lat=%20&lon=nope', EMPTY_LAYERS);
     assert.equal(state.lat, undefined);
     assert.equal(state.lon, undefined);
+  });
+});
+
+describe('parseMapUrlState zoom range', () => {
+  it('preserves city-scale zoom for CSM links and clamps at the CSM ceiling', () => {
+    assert.equal(getMapZoomMaximum(true), 18);
+    assert.equal(parseMapUrlState('?zoom=17.42', EMPTY_LAYERS, { csmMode: true }).zoom, 17.42);
+    assert.equal(parseMapUrlState('?zoom=99', EMPTY_LAYERS, { csmMode: true }).zoom, 18);
+  });
+
+  it('round-trips city-scale zoom through a share link', () => {
+    const url = buildMapUrl('https://worldmonitor.app/dashboard', {
+      view: 'global', zoom: 17.42, center: { lat: 41.4074, lon: 2.2089 },
+      timeRange: '7d', layers: EMPTY_LAYERS,
+    });
+    const parsed = parseMapUrlState(new URL(url).search, EMPTY_LAYERS, { csmMode: true });
+    assert.equal(parsed.zoom, 17.42);
+    assert.equal(parsed.lat, 41.4074);
+    assert.equal(parsed.lon, 2.2089);
+  });
+
+  it('keeps the standard edition zoom ceiling when no CSM range is requested', () => {
+    assert.equal(getMapZoomMaximum(false), 10);
+    assert.equal(parseMapUrlState('?zoom=18', EMPTY_LAYERS).zoom, 10);
   });
 });
 

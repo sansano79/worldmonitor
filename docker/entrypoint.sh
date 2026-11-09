@@ -26,5 +26,6 @@ if [ -z "${LOCAL_API_TOKEN:-}" ]; then
 fi
 
 node /app/render-nginx-realip.mjs
+node /app/render-csm-runtime-config.mjs
 envsubst '$LOCAL_API_PORT $LOCAL_API_TOKEN' < /etc/nginx/nginx.conf.template > /tmp/nginx.conf
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/worldmonitor.conf

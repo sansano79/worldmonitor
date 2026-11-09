@@ -13,6 +13,9 @@ export default async function ({ page, base, shot, log }) {
 
   await page.locator('#mapDimensionToggle [data-mode="globe"]').click();
   await page.waitForFunction(() => document.querySelector('#mapContainer')?.dataset.csmCesiumReady === 'true', { timeout: 60_000 });
+  const osmAttribution = page.locator('#mapContainer a[href="https://openstreetmap.org/copyright"]');
+  await osmAttribution.waitFor({ state: 'visible', timeout: 20_000 });
+  if (!(await osmAttribution.isVisible())) throw new Error('OpenStreetMap attribution is not visible on the 3D map');
   const proof = await page.locator('#mapContainer').evaluate((element) => ({
     renderer: element.dataset.mapRenderer,
     offices: Number(element.dataset.csmOfficeCount),
@@ -26,7 +29,7 @@ export default async function ({ page, base, shot, log }) {
   }
   if (proof.controls.length !== 10) throw new Error(`expected ten CSM layer controls: ${proof.controls.join(', ')}`);
   if (mobile && proof.controlsViewport?.right > proof.viewport.right + 1) throw new Error('Layer controls extend beyond the mobile map viewport');
-  log('Cesium map:', JSON.stringify(proof));
+  log('Cesium map and visible OpenStreetMap attribution:', JSON.stringify(proof));
   await shot('cesium-ready');
 
   if (!mobile) {
@@ -47,6 +50,47 @@ export default async function ({ page, base, shot, log }) {
   await officeToggle.check();
   if (!(await officeToggle.evaluate((input) => input.checked))) throw new Error('SEIDOR offices layer did not turn on');
   await shot('cesium-offices-enabled');
+
+  const mapRect = await page.locator('#mapContainer').boundingBox();
+  if (!mapRect) throw new Error('CSM map viewport is missing');
+  await page.mouse.move(mapRect.x + mapRect.width / 2, mapRect.y + mapRect.height / 2);
+  await page.mouse.wheel(0, -1800);
+  await page.waitForFunction(() => {
+    const zoom = Number(new URL(location.href).searchParams.get('zoom'));
+    return Number.isFinite(zoom) && zoom >= 16;
+  }, { timeout: 10_000 });
+  const zoomAfterWheel = Number(new URL(page.url()).searchParams.get('zoom'));
+  log('CSM zoom saved after wheel settles:', zoomAfterWheel);
+  await shot('cesium-city-zoom-url');
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await waitForBoot(page);
+  const reloadedRenderer = await waitForMap(page);
+  await page.waitForFunction((expectedZoom) => {
+    const zoom = Number(new URL(location.href).searchParams.get('zoom'));
+    return Number.isFinite(zoom) && Math.abs(zoom - expectedZoom) < 0.15;
+  }, zoomAfterWheel, { timeout: 10_000 });
+  log('CSM zoom survives reload; renderer:', reloadedRenderer);
+  await shot('zoom-link-reloaded');
+
+  if (reloadedRenderer !== 'cesium') {
+    await page.locator('#mapDimensionToggle [data-mode="globe"]').click();
+    await page.waitForFunction(() => document.querySelector('#mapContainer')?.dataset.csmCesiumReady === 'true', { timeout: 60_000 });
+  }
+  await page.locator('#mapDimensionToggle [data-mode="flat"]').click();
+  await waitForMap(page);
+  await page.waitForFunction((expectedZoom) => {
+    const zoom = Number(new URL(location.href).searchParams.get('zoom'));
+    return Number.isFinite(zoom) && Math.abs(zoom - expectedZoom) < 0.15;
+  }, zoomAfterWheel, { timeout: 10_000 });
+  await page.locator('#mapDimensionToggle [data-mode="globe"]').click();
+  await page.waitForFunction(() => document.querySelector('#mapContainer')?.dataset.csmCesiumReady === 'true', { timeout: 60_000 });
+  await page.waitForFunction((expectedZoom) => {
+    const zoom = Number(new URL(location.href).searchParams.get('zoom'));
+    return Number.isFinite(zoom) && Math.abs(zoom - expectedZoom) < 0.15;
+  }, zoomAfterWheel, { timeout: 10_000 });
+  log('CSM city zoom survives flat/globe transitions:', Number(new URL(page.url()).searchParams.get('zoom')));
+  await shot('zoom-link-renderer-roundtrip');
 
   await page.locator('#mapDimensionToggle [data-mode="flat"]').click();
   await page.waitForFunction(() => !document.querySelector('#mapContainer')?.dataset.csmCesiumReady, { timeout: 30_000 });

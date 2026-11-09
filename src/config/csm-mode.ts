@@ -13,6 +13,11 @@ export function isCsmMode(): boolean {
   }
 }
 
+/** CSM supports street-scale camera zoom; the upstream flat/globe maps keep their 1-10 range. */
+export function getMapZoomMaximum(csmMode = isCsmMode()): number {
+  return csmMode ? 18 : 10;
+}
+
 /**
  * Small panel catalog exposed in CSM settings. Keep this list focused on
  * country, incident, and source monitoring; the complete dashboard catalog
